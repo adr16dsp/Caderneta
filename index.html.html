@@ -1,0 +1,3062 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caderneta — Lançamento e acompanhamento de notas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papel:#F2F4F0;
+  --papel-2:#E8ECE5;
+  --superficie:#FFFFFF;
+  --tinta:#16232E;
+  --tinta-fraca:#5B6A75;
+  --azul:#1D4E6B;
+  --azul-claro:#E4EEF3;
+  --pauta:#CBD9C6;
+  --pauta-fraca:#E6EDE3;
+  --carimbo:#B3271E;
+  --carimbo-fraco:#FBEDEC;
+  --ambar:#B07A12;
+  --ambar-fraco:#FCF3E0;
+  --verde:#2E6E4E;
+  --raio:4px;
+  --display:"Zilla Slab",Georgia,"Times New Roman",serif;
+  --corpo:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--papel);
+  color:var(--tinta);
+  font-family:var(--corpo);
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--display);font-weight:600;margin:0;line-height:1.2}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+input,select,textarea{
+  background:#fff;border:1px solid var(--pauta);border-radius:var(--raio);
+  padding:7px 9px;width:100%;
+}
+input:focus,select:focus,textarea:focus,button:focus-visible{
+  outline:2px solid var(--azul);outline-offset:1px;border-color:var(--azul)
+}
+textarea{min-height:70px;resize:vertical}
+label{display:block;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--tinta-fraca);margin-bottom:4px}
+.linha{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.campo{flex:1 1 180px;min-width:0}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;justify-content:center;
+  background:var(--azul);color:#fff;border:1px solid var(--azul);
+  padding:8px 14px;border-radius:var(--raio);cursor:pointer;font-weight:600;font-size:14px;
+  width:auto;transition:filter .12s ease;
+}
+.btn:hover{filter:brightness(1.15)}
+.btn.sec{background:#fff;color:var(--azul)}
+.btn.sec:hover{background:var(--azul-claro);filter:none}
+.btn.perigo{background:#fff;color:var(--carimbo);border-color:var(--carimbo)}
+.btn.perigo:hover{background:var(--carimbo-fraco);filter:none}
+.btn.min{padding:4px 8px;font-size:12.5px;font-weight:600}
+.btn.mini{padding:1px 5px;font-size:10.5px;font-weight:700;letter-spacing:.03em;border-radius:3px}
+.atalhos{display:flex;gap:3px;margin-top:3px}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11.5px;font-weight:600;letter-spacing:.03em}
+.chip.ok{background:#E6F1EA;color:var(--verde)}
+.chip.esp{background:var(--ambar-fraco);color:var(--ambar)}
+.chip.off{background:var(--papel-2);color:var(--tinta-fraca)}
+
+/* ————— Acesso ————— */
+#acesso{min-height:100vh;display:grid;place-items:center;padding:24px}
+.cartao-acesso{
+  width:100%;max-width:430px;background:var(--superficie);
+  border:1px solid var(--pauta);border-radius:6px;overflow:hidden;
+  box-shadow:0 1px 0 var(--pauta-fraca),0 18px 40px -28px rgba(22,35,46,.5);
+}
+.capa-topo{
+  background:var(--azul);color:#fff;padding:26px 26px 22px;
+  background-image:repeating-linear-gradient(180deg,rgba(255,255,255,.06) 0 1px,transparent 1px 26px);
+}
+.capa-topo .selo{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;opacity:.75}
+.capa-topo h1{font-size:34px;letter-spacing:-.01em;margin-top:6px;color:#fff}
+.capa-topo p{margin:6px 0 0;font-size:13.5px;opacity:.85}
+.abas-acesso{display:flex;border-bottom:1px solid var(--pauta)}
+.abas-acesso button{
+  flex:1;background:var(--papel-2);border:0;border-bottom:3px solid transparent;
+  padding:12px;cursor:pointer;font-weight:600;color:var(--tinta-fraca);
+}
+.abas-acesso button[aria-selected="true"]{background:#fff;color:var(--azul);border-bottom-color:var(--azul)}
+.corpo-acesso{padding:22px 26px 26px;display:grid;gap:14px}
+
+/* ————— Estrutura ————— */
+#app{display:none;min-height:100vh;grid-template-columns:236px 1fr}
+#app.ativo{display:grid}
+#app.aluno,#app.gerente{grid-template-columns:1fr}
+#app.aluno aside,#app.gerente aside{display:none}
+.discreto{
+  background:none;border:0;padding:6px 4px;width:auto;cursor:pointer;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--pauta);transition:color .15s ease;
+}
+.discreto:hover,.discreto:focus-visible{color:var(--azul)}
+.rodape-acesso{display:flex;justify-content:flex-end;padding:0 18px 10px;margin-top:-14px}
+aside{
+  background:var(--azul);color:#cfe0e9;padding:18px 0;position:sticky;top:0;height:100vh;overflow:auto;
+}
+aside .marca{padding:0 20px 16px;border-bottom:1px solid rgba(255,255,255,.16)}
+aside .marca strong{display:block;font-family:var(--display);font-size:22px;color:#fff;letter-spacing:.01em}
+aside .marca span{font-size:11.5px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+nav{padding:12px 10px;display:grid;gap:2px}
+nav button{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;
+  color:#cfe0e9;padding:9px 12px;border-radius:var(--raio);cursor:pointer;font-size:14.5px;font-weight:500;
+}
+nav button:hover{background:rgba(255,255,255,.09);color:#fff}
+nav button.on{background:#fff;color:var(--azul);font-weight:600}
+nav .num{font-family:var(--mono);font-size:11px;opacity:.6;width:16px}
+nav button.on .num{opacity:.5}
+aside .rodape{padding:14px 20px;font-size:12px;opacity:.7;border-top:1px solid rgba(255,255,255,.16);margin-top:10px}
+main{padding:26px 30px 90px;max-width:1240px}
+.cabeca{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.cabeca h2{font-size:27px}
+.cabeca .sub{color:var(--tinta-fraca);font-size:13.5px;margin-top:3px}
+.painel{
+  background:var(--superficie);border:1px solid var(--pauta);border-radius:6px;
+  padding:20px;margin-bottom:18px;
+}
+.painel > h3{font-size:17px;margin-bottom:3px}
+.painel > .desc{color:var(--tinta-fraca);font-size:13px;margin:0 0 14px}
+.vazio{
+  border:1px dashed var(--pauta);border-radius:6px;padding:26px;text-align:center;
+  color:var(--tinta-fraca);font-size:14px;background:repeating-linear-gradient(180deg,transparent 0 25px,var(--pauta-fraca) 25px 26px);
+}
+.vazio strong{display:block;color:var(--tinta);font-family:var(--display);font-size:17px;margin-bottom:4px}
+
+/* ————— Tabelas de pauta ————— */
+.pauta{width:100%;border-collapse:collapse;font-size:14px}
+.pauta th{
+  text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-fraca);
+  font-weight:700;padding:8px 10px;border-bottom:2px solid var(--azul);white-space:nowrap;vertical-align:bottom;
+}
+.pauta td{padding:6px 10px;border-bottom:1px solid var(--pauta-fraca)}
+.pauta tbody tr:nth-child(even){background:#FAFBF9}
+.pauta tbody tr:hover{background:var(--azul-claro)}
+.pauta .ord{
+  font-family:var(--mono);font-size:12px;color:var(--tinta-fraca);width:34px;text-align:right;
+  border-right:1px solid var(--pauta);
+}
+.pauta .nome{font-weight:500;min-width:180px}
+.pauta .num,.pauta td input[type=number]{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pauta td input[type=number]{width:78px;padding:5px 6px;text-align:right}
+.pauta .final{font-family:var(--mono);font-weight:700;font-size:15px;text-align:right}
+.rolagem{overflow-x:auto;margin:0 -20px;padding:0 20px}
+.faltou{background:var(--carimbo-fraco)!important;color:var(--carimbo);text-decoration:line-through}
+.marca-just{color:var(--ambar);font-weight:700;cursor:pointer;background:none;border:0;padding:0 4px;width:auto}
+
+/* ————— Carimbo (assinatura visual) ————— */
+.carimbo{
+  display:inline-flex;flex-direction:column;align-items:center;gap:2px;
+  border:3px double var(--carimbo);color:var(--carimbo);
+  padding:8px 18px;border-radius:3px;transform:rotate(-3.5deg);
+  font-family:var(--display);text-transform:uppercase;letter-spacing:.14em;
+  font-weight:700;font-size:16px;line-height:1.1;background:var(--carimbo-fraco);
+}
+.carimbo small{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;font-weight:400;opacity:.85}
+.carimbo.liberado{border-color:var(--verde);color:var(--verde);background:#EAF3EE;transform:rotate(2deg)}
+.faixa-visib{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  border:1px solid var(--pauta);border-left:5px solid var(--carimbo);
+  background:#fff;padding:14px 18px;border-radius:6px;margin-bottom:18px;
+}
+.faixa-visib.on{border-left-color:var(--verde)}
+.faixa-visib .txt strong{display:block;font-family:var(--display);font-size:17px}
+.faixa-visib .txt span{font-size:13px;color:var(--tinta-fraca)}
+
+/* ————— Diversos ————— */
+.lista{display:grid;gap:8px}
+.item{
+  display:flex;align-items:center;gap:12px;justify-content:space-between;
+  border:1px solid var(--pauta);border-radius:var(--raio);padding:10px 14px;background:#fff;
+}
+.item.sel{border-color:var(--azul);background:var(--azul-claro);box-shadow:inset 3px 0 0 var(--azul)}
+.item .t{font-weight:600}
+.item .d{font-size:12.5px;color:var(--tinta-fraca)}
+.acoes{display:flex;gap:6px;flex-wrap:wrap}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.pill{font-family:var(--mono);font-size:11.5px;background:var(--papel-2);padding:2px 7px;border-radius:3px;color:var(--tinta-fraca)}
+.aviso{border-left:4px solid var(--ambar);background:var(--ambar-fraco);padding:10px 14px;border-radius:var(--raio);font-size:13.5px;margin:10px 0}
+.aviso.erro{border-color:var(--carimbo);background:var(--carimbo-fraco)}
+.aviso.bom{border-color:var(--verde);background:#EAF3EE}
+.colar{
+  border:2px dashed var(--pauta);border-radius:6px;padding:18px;text-align:center;color:var(--tinta-fraca);
+  cursor:pointer;background:#fff;font-size:13.5px;
+}
+.colar:focus{outline:2px solid var(--azul)}
+.colar img{max-width:100%;max-height:220px;border-radius:var(--raio);display:block;margin:0 auto}
+.subcard{border:1px solid var(--pauta);border-left:4px solid var(--azul);border-radius:var(--raio);padding:14px;background:#FCFDFB;margin-bottom:10px}
+.subcard header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.subcard header .t{font-family:var(--display);font-size:16px;font-weight:600}
+details.q{border-top:1px dashed var(--pauta);margin-top:10px;padding-top:8px}
+details.q summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--azul)}
+.qgrade{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px}
+.qitem{border:1px solid var(--pauta);border-radius:var(--raio);padding:6px 8px;background:#fff}
+.qitem .qn{font-family:var(--mono);font-size:11px;color:var(--tinta-fraca)}
+.qbox{display:flex;gap:6px;align-items:center}
+.qbox input{padding:3px 5px;text-align:center}
+.escolhas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.escolhas button{border:1px solid var(--pauta);background:#fff;border-radius:20px;padding:3px 11px;font-size:12.5px;cursor:pointer;width:auto}
+.escolhas button.on{background:var(--azul);color:#fff;border-color:var(--azul)}
+.modal{position:fixed;inset:0;background:rgba(22,35,46,.55);display:grid;place-items:center;padding:20px;z-index:60}
+.modal .cx{background:#fff;border-radius:6px;max-width:600px;width:100%;max-height:88vh;overflow:auto;padding:22px;border-top:5px solid var(--azul)}
+.modal h3{font-size:20px;margin-bottom:12px}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:10px 18px;border-radius:20px;font-size:13.5px;z-index:99;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+.salvo{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-fraca)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--pauta);margin-bottom:16px;flex-wrap:wrap}
+.tabs button{background:transparent;border:0;border-bottom:3px solid transparent;padding:9px 14px;cursor:pointer;font-weight:600;color:var(--tinta-fraca);width:auto}
+.tabs button.on{color:var(--azul);border-bottom-color:var(--azul)}
+
+/* ————— Aluno ————— */
+.boletim{max-width:820px;margin:0 auto}
+.boletim .cabeca-b{background:var(--azul);color:#fff;padding:22px 24px;border-radius:6px 6px 0 0}
+.boletim .cabeca-b h2{color:#fff;font-size:24px}
+.boletim .cabeca-b p{margin:4px 0 0;opacity:.85;font-size:13.5px}
+.corpo-b{background:#fff;border:1px solid var(--pauta);border-top:0;border-radius:0 0 6px 6px;padding:22px}
+.bloco-av{border:1px solid var(--pauta);border-radius:var(--raio);margin-bottom:12px;overflow:hidden}
+.bloco-av > summary{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;background:#FBFCFA;font-weight:600}
+.bloco-av > div{padding:14px;border-top:1px solid var(--pauta-fraca)}
+.notao{font-family:var(--mono);font-size:34px;font-weight:700;color:var(--azul);font-variant-numeric:tabular-nums}
+
+/* ————— Impressão ————— */
+#impressao{display:none}
+@media print{
+  body{background:#fff}
+  aside,nav,.naoimprime,#toast{display:none!important}
+  #app{display:block!important}
+  main{padding:0;max-width:none}
+  #impressao{display:block}
+  .painel{border:0;padding:0;margin:0}
+  .pauta{font-size:11px}
+  .pauta th{border-bottom:1.5px solid #000;color:#000}
+  .pauta td{border-bottom:1px solid #ccc}
+  .pauta tbody tr:nth-child(even){background:#f4f4f4!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{margin:1.4cm}
+}
+@media (max-width:820px){
+  #app.ativo{grid-template-columns:1fr}
+  aside{position:static;height:auto}
+  nav{grid-template-columns:repeat(2,1fr);display:grid}
+  main{padding:18px 14px 70px}
+  .rolagem{margin:0 -20px;padding:0 20px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ===================== ACESSO ===================== -->
+<section id="acesso">
+  <div class="cartao-acesso">
+    <div class="capa-topo">
+      <div class="selo" id="seloCapa">Diário de notas</div>
+      <h1 id="tituloCapa">Caderneta</h1>
+      <p id="subCapa">Lançamento, cálculo e acompanhamento de notas.</p>
+    </div>
+    <div class="abas-acesso" role="tablist">
+      <button role="tab" aria-selected="true" data-aba="prof">Professor</button>
+      <button role="tab" aria-selected="false" data-aba="aluno">Aluno</button>
+    </div>
+    <div class="corpo-acesso" id="formAcesso"></div>
+    <div class="rodape-acesso"><button class="discreto" id="btnGerente" title="Acesso restrito">Gerenciador</button></div>
+  </div>
+</section>
+
+<!-- ===================== APP ===================== -->
+<div id="app">
+  <aside class="naoimprime">
+    <div class="marca">
+      <span id="marcaSelo">Diário de notas</span>
+      <strong id="marcaNome">Caderneta</strong>
+    </div>
+    <nav id="menu"></nav>
+    <div class="rodape">
+      <div class="salvo" id="statusSalvo">—</div>
+      <div class="salvo" id="statusNuvem" style="margin-top:4px"></div>
+      <button class="btn sec min" style="margin-top:8px" id="btnSair">Sair</button>
+    </div>
+  </aside>
+  <main id="tela"></main>
+</div>
+
+<div id="toast"></div>
+<div id="modais"></div>
+<script>
+/* =======================================================================
+   CADERNETA — app offline de lançamento e acompanhamento de notas
+   Estrutura: DB único em memória, persistido em localStorage + Drive/JSON
+   ======================================================================= */
+
+const CHAVE = 'caderneta_v1';
+let memoria = null; // reserva quando localStorage não está disponível
+
+const ETAPAS_PADRAO = ['Ensino Fundamental I','Ensino Fundamental II','Ensino Médio'];
+const TURNOS_PADRAO = ['Manhã','Tarde','Noite','Integral'];
+const NOMES_PADRAO  = ['A','B','C','D','E'];
+
+const vazioDB = () => ({
+  versao: 2,
+  capa: { instituicao:'', tipoPeriodo:'Bimestre', periodo:'', ano:String(new Date().getFullYear()) },
+  prof: { hash:'', dica:'' },      // conta antiga, migrada para 'professores'
+  professores: [],   // {id, nome, disciplina, hash, dica, status:'ativo'|'pendente', criadoEm, liberadoEm}
+  gerente: { hash:'' },
+  catalogos: { etapas:[...ETAPAS_PADRAO], turnos:[...TURNOS_PADRAO], nomes:[...NOMES_PADRAO], materias:{} },
+  turmas: [],        // {id, etapa, serie, turno, nome, alunos:[{id,nome,senha,resetLiberado}]}
+  acessos: {},       // "profId::turmaId" -> {status:'pendente'|'ativo', pedidoEm, liberadoEm}
+  avaliacoes: [],    // {id, profId, nome, descricao, max, modoSub, subs:[...]}
+  aplicacoes: {},    // "turmaId::avalId" -> {visivel, liberadoEm, notas:{alunoId:{subId:{...}}}}
+  calculos: {},      // "turmaId::profId" -> {modo:'media'|'pesos', maxFinal, pesos:{avalId:valor}}
+  pedidos: [],       // {id, tipo:'excluir-aluno', profId, turmaId, alunoId, nome, motivo, status, em}
+  historico: [],     // {ts, turma, aluno, aval, sub, antes, depois, autor}
+  backup: { link:'' },
+  atualizadoEm: 0
+});
+
+let DB = vazioDB();
+let sessao = null;    // {tipo:'prof'} | {tipo:'aluno', turmaId, alunoId}
+let vista = 'capa';
+let ctx = {};         // contexto de navegação (turma selecionada, avaliação em edição etc.)
+
+/* ---------------- utilidades ---------------- */
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const uid = ()=> Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = (v,p=0)=> (v===null||v===undefined||v==='' ) ? p : (isNaN(parseFloat(v))?p:parseFloat(String(v).replace(',','.')));
+const fmt = (v,c=2)=> (v===null||v===undefined||isNaN(v)) ? '—' : Number(v).toFixed(c).replace('.',',');
+const dataHora = ts => new Date(ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const normal = s => String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+const ordAlfa = (a,b)=> normal(a.nome).localeCompare(normal(b.nome),'pt-BR');
+
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('on'),2600);
+}
+
+/* ---------------- persistência ---------------- */
+let timerSalvar=null;
+function salvar(silencioso){
+  DB.atualizadoEm = Date.now();
+  const txt = JSON.stringify(DB);
+  try{ localStorage.setItem(CHAVE, txt); }catch(e){ memoria = txt; }
+  const s=$('#statusSalvo');
+  if(s) s.textContent = 'Salvo às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  agendarSinc();
+  if(!silencioso) return true;
+}
+function carregar(){
+  let txt=null;
+  try{ txt = localStorage.getItem(CHAVE); }catch(e){ txt = memoria; }
+  if(!txt) return false;
+  try{
+    const d = JSON.parse(txt);
+    DB = Object.assign(vazioDB(), d);
+    const z = vazioDB();
+    DB.capa = Object.assign(z.capa, d.capa||{});
+    DB.gerente = Object.assign(z.gerente, d.gerente||{});
+    DB.backup = Object.assign(z.backup, d.backup||{});
+    DB.catalogos = Object.assign(z.catalogos, d.catalogos||{});
+    if(!DB.catalogos.materias || Array.isArray(DB.catalogos.materias)) DB.catalogos.materias={};
+    DB.professores = Array.isArray(d.professores)?d.professores:[];
+    DB.pedidos = Array.isArray(d.pedidos)?d.pedidos:[];
+    DB.acessos = d.acessos||{}; DB.calculos = d.calculos||{};
+    migrar();
+    return true;
+  }catch(e){ return false; }
+}
+
+/* passagem da caderneta de um professor só para a caderneta da escola */
+function migrar(){
+  // disciplina única -> lista de disciplinas
+  DB.professores.forEach(p=>{
+    if(!Array.isArray(p.disciplinas)) p.disciplinas = p.disciplina? [p.disciplina] : [];
+  });
+  DB.avaliacoes.forEach(a=>{
+    if(a.disc===undefined){
+      const dono=profPorId(a.profId);
+      a.disc = dono ? (discsDoProf(dono)[0]||'') : '';
+    }
+  });
+  // acessos antigos (prof::turma) passam a valer para cada disciplina do professor
+  Object.keys(DB.acessos||{}).forEach(k=>{
+    if(k.split('::').length===2){
+      const [pid,tid]=k.split('::'); const v=DB.acessos[k];
+      const ds=discsDoProf(pid);
+      (ds.length?ds:['']).forEach(d=>{ DB.acessos[pid+'::'+tid+'::'+d]=Object.assign({},v); });
+      delete DB.acessos[k];
+    }
+  });
+  // cálculos antigos (turma::prof) ganham a primeira disciplina do professor
+  Object.keys(DB.calculos||{}).forEach(k=>{
+    if(k.split('::').length===2){
+      const [tid,pid]=k.split('::');
+      DB.calculos[tid+'::'+pid+'::'+(discsDoProf(pid)[0]||'')] = DB.calculos[k];
+      delete DB.calculos[k];
+    }
+  });
+  if(DB.versao>=2 && DB.turmas.every(t=>t.etapa!==undefined)) return;
+  const dono = (DB.professores[0]||{}).id || null;
+  if(DB.professores.length===1 && !discsDoProf(DB.professores[0]).length && (DB.capa||{}).disciplina){
+    DB.professores[0].disciplinas = [DB.capa.disciplina];
+    DB.avaliacoes.forEach(a=>{ if(!a.disc) a.disc = DB.capa.disciplina; });
+  }
+  DB.turmas.forEach(t=>{
+    if(t.etapa===undefined){
+      t.etapa = 'Ensino Médio'; t.serie=''; t.turno='Manhã';
+      t.nome = t.nome||'A';
+    }
+    if(t.calc && dono){ DB.calculos[t.id+'::'+dono+'::'+(discsDoProf(dono)[0]||(DB.capa||{}).disciplina||'')] = t.calc; }
+    delete t.calc;
+    if(dono){
+      const ds = discsDoProf(dono); const agora=Date.now();
+      (ds.length?ds:['']).forEach(d=>{ DB.acessos[dono+'::'+t.id+'::'+d] = {status:'ativo', pedidoEm:agora, liberadoEm:agora}; });
+    }
+  });
+  DB.avaliacoes.forEach(a=>{ if(!a.profId && dono) a.profId = dono; });
+  delete DB.capa.disciplina; delete DB.capa.professor;
+  DB.versao = 2;
+}
+
+/* ---------------- senhas ---------------- */
+/* SHA-256 em JS puro: o resultado é idêntico em file://, http:// e https://,
+   então as senhas continuam válidas em qualquer forma de abrir o arquivo. */
+const K256=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+function utf8bytes(str){
+  if(typeof TextEncoder!=='undefined') return [...new TextEncoder().encode(str)];
+  const b=[]; for(const ch of unescape(encodeURIComponent(str))) b.push(ch.charCodeAt(0)); return b;
+}
+function sha256hex(texto){
+  const msg=utf8bytes(texto), bits=msg.length*8;
+  msg.push(0x80); while(msg.length%64!==56) msg.push(0);
+  const alto=Math.floor(bits/4294967296), baixo=bits>>>0;
+  msg.push(alto>>>24&255,alto>>>16&255,alto>>>8&255,alto&255,baixo>>>24&255,baixo>>>16&255,baixo>>>8&255,baixo&255);
+  let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const rr=(x,n)=>(x>>>n)|(x<<(32-n));
+  const w=new Array(64);
+  for(let i=0;i<msg.length;i+=64){
+    for(let j=0;j<16;j++) w[j]=(msg[i+4*j]<<24)|(msg[i+4*j+1]<<16)|(msg[i+4*j+2]<<8)|msg[i+4*j+3];
+    for(let j=16;j<64;j++){
+      const s0=rr(w[j-15],7)^rr(w[j-15],18)^(w[j-15]>>>3);
+      const s1=rr(w[j-2],17)^rr(w[j-2],19)^(w[j-2]>>>10);
+      w[j]=(w[j-16]+s0+w[j-7]+s1)|0;
+    }
+    let [a,b,c,d,e,f,g,h]=H;
+    for(let j=0;j<64;j++){
+      const S1=rr(e,6)^rr(e,11)^rr(e,25), ch=(e&f)^(~e&g);
+      const t1=(h+S1+ch+K256[j]+w[j])|0;
+      const S0=rr(a,2)^rr(a,13)^rr(a,22), maj=(a&b)^(a&c)^(b&c);
+      const t2=(S0+maj)|0;
+      h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;
+    }
+    H=[H[0]+a|0,H[1]+b|0,H[2]+c|0,H[3]+d|0,H[4]+e|0,H[5]+f|0,H[6]+g|0,H[7]+h|0];
+  }
+  return H.map(x=>(x>>>0).toString(16).padStart(8,'0')).join('');
+}
+async function hash(txt){ return sha256hex('caderneta::'+txt); }
+
+/* ---------------- acesso ---------------- */
+let abaAcesso='prof';
+function telaAcesso(){
+  $('#acesso').style.display='grid';
+  $('#app').classList.remove('ativo');
+  const c=DB.capa;
+  $('#tituloCapa').textContent = c.disciplina || 'Caderneta';
+  $('#subCapa').textContent = c.disciplina
+    ? [c.professor, [c.periodo && (c.periodo+'º '+c.tipoPeriodo), c.ano].filter(Boolean).join(' · ')].filter(Boolean).join(' — ') || 'Lançamento e acompanhamento de notas.'
+    : 'Lançamento, cálculo e acompanhamento de notas.';
+  $('#seloCapa').textContent = c.instituicao || 'Diário de notas';
+  desenhaAcesso();
+}
+let telaCadastro=false;
+const profAtivos = ()=> DB.professores.filter(p=>p.status==='ativo');
+const profPendentes = ()=> DB.professores.filter(p=>p.status==='pendente');
+const profAtual = ()=> DB.professores.find(p=>p.id===(sessao||{}).profId) || null;
+
+function desenhaAcesso(){
+  $$('.abas-acesso button').forEach(b=>b.setAttribute('aria-selected', b.dataset.aba===abaAcesso));
+  const box=$('#formAcesso');
+
+  if(abaAcesso==='gerente'){
+    box.innerHTML = `
+      <div class="aviso">Área restrita à coordenação. O gerenciador cadastra professores e libera as solicitações de cadastro.</div>
+      <div><label>Senha do gerenciador</label><input type="password" id="g1" autocomplete="current-password"></div>
+      <button class="btn" id="btnEntrarGer">Entrar como gerenciador</button>
+      <button class="btn sec" id="btnVoltarAcesso">Voltar</button>`;
+    setTimeout(()=>{ const g=$('#g1'); if(g) g.focus(); },0);
+    return;
+  }
+
+  if(abaAcesso==='prof'){
+    if(telaCadastro){
+      box.innerHTML = `
+        <div class="aviso">O cadastro fica <strong>pendente</strong> até o gerenciador liberar. Depois disso, entre com o mesmo nome e senha.</div>
+        <div><label>Seu nome</label><input id="rNome" placeholder="Nome completo" autocomplete="name"></div>
+        <div><label>Disciplina(s) que leciona</label><input id="rDisc" placeholder="Língua Portuguesa, Redação"></div>
+        <div><label>Senha</label><input type="password" id="r1" autocomplete="new-password"></div>
+        <div><label>Repetir senha</label><input type="password" id="r2" autocomplete="new-password"></div>
+        <div><label>Dica da senha (opcional)</label><input id="rd" placeholder="Algo que só você entenda"></div>
+        <button class="btn" id="btnSolicitarOk">Enviar solicitação</button>
+        <button class="btn sec" id="btnVoltarAcesso">Voltar</button>`;
+      return;
+    }
+    const ativos = profAtivos();
+    box.innerHTML = `
+      ${!DB.professores.length?`<div class="aviso">Nenhum professor cadastrado ainda. Solicite o cadastro abaixo ou entre como gerenciador para criar o primeiro.</div>`:''}
+      <div><label>Professor</label>
+        <input id="pNome" list="listaProf" placeholder="Seu nome" autocomplete="username">
+        <datalist id="listaProf">${ativos.map(p=>`<option value="${esc(p.nome)}"></option>`).join('')}</datalist></div>
+      <div><label>Senha</label><input type="password" id="p1" autocomplete="current-password"></div>
+      <button class="btn" id="btnEntrarProf">Entrar</button>
+      <div style="font-size:12.5px;color:var(--tinta-fraca)">Ainda não tem acesso? Solicite o cadastro e aguarde a liberação do gerenciador.</div>
+      <button class="btn sec" id="btnSolicitar">Solicitar cadastro</button>
+      <button class="btn sec" id="btnRestaurar">Restaurar backup (.json)</button>`;
+    return;
+  }
+
+  const turmas = [...DB.turmas].sort(ordTurma);
+  box.innerHTML = `
+    <div><label>Nome completo</label><input id="aNome" placeholder="Como está na lista da turma" autocomplete="name"></div>
+    <div><label>Turma</label><select id="aTurma">${turmas.length?turmas.map(t=>`<option value="${t.id}">${esc(rotuloTurma(t))}</option>`).join(''):'<option value="">Nenhuma turma cadastrada</option>'}</select></div>
+    <div><label>Senha</label><input type="password" id="aSenha" placeholder="Sua senha"></div>
+    <button class="btn" id="btnEntrarAluno">Ver minhas notas</button>
+    <div style="font-size:12.5px;color:var(--tinta-fraca)">Primeiro acesso: deixe a senha em branco e clique em entrar para cadastrar a sua. Esqueceu a senha? Procure o professor para liberar a redefinição.</div>`;
+}
+
+document.addEventListener('click', async e=>{
+  const b=e.target.closest('button'); if(!b) return;
+
+  if(b.dataset.aba){ abaAcesso=b.dataset.aba; telaCadastro=false; desenhaAcesso(); return; }
+  if(b.id==='btnGerente'){ abaAcesso='gerente'; telaCadastro=false; desenhaAcesso(); return; }
+  if(b.id==='btnVoltarAcesso'){ abaAcesso='prof'; telaCadastro=false; desenhaAcesso(); return; }
+  if(b.id==='btnSolicitar'){ telaCadastro=true; desenhaAcesso(); return; }
+
+  if(b.id==='btnEntrarGer'){
+    const h = await hash($('#g1').value);
+    if(h!==DB.gerente.hash) return toast('Senha do gerenciador incorreta.');
+    sessao={tipo:'gerente'}; abrirApp(); return;
+  }
+  if(b.id==='btnSolicitarOk'){
+    const nome=$('#rNome').value.trim(), r1=$('#r1').value, r2=$('#r2').value;
+    if(!nome) return toast('Informe o seu nome.');
+    if(DB.professores.some(p=>normal(p.nome)===normal(nome))) return toast('Já existe um cadastro com esse nome.');
+    if(r1.length<4) return toast('Use pelo menos 4 caracteres na senha.');
+    if(r1!==r2) return toast('As senhas não coincidem.');
+    DB.professores.push({id:uid(), nome, disciplinas:$('#rDisc').value.split(/[,;]/).map(x=>x.trim()).filter(Boolean),
+      hash:await hash(r1), dica:$('#rd').value.trim(), status:'pendente', criadoEm:Date.now(), liberadoEm:null});
+    salvar(); telaCadastro=false; desenhaAcesso();
+    toast('Solicitação enviada. Aguarde a liberação do gerenciador.'); return;
+  }
+  if(b.id==='btnEntrarProf'){
+    const nome=$('#pNome').value.trim();
+    const prof = DB.professores.find(p=>normal(p.nome)===normal(nome));
+    if(!prof) return toast('Professor não encontrado. Solicite o cadastro.');
+    if(prof.status!=='ativo') return toast('Cadastro ainda pendente. Procure o gerenciador para liberar.');
+    const h = await hash($('#p1').value);
+    if(h!==prof.hash) return toast('Senha incorreta.'+(prof.dica?' Dica: '+prof.dica:''));
+    sessao={tipo:'prof', profId:prof.id}; abrirApp(); return;
+  }
+  if(b.id==='btnRestaurar'){ importarJSON(); return; }
+
+  if(b.id==='btnEntrarAluno'){
+    const nome=$('#aNome').value, tid=$('#aTurma').value, senha=$('#aSenha').value;
+    const turma = DB.turmas.find(t=>t.id===tid);
+    if(!turma) return toast('Selecione a sua turma.');
+    const aluno = turma.alunos.find(a=>normal(a.nome)===normal(nome));
+    if(!aluno) return toast('Nome não encontrado nesta turma. Confira a grafia com o professor.');
+    if(!aluno.senha || aluno.resetLiberado){
+      modalNovaSenha(turma, aluno); return;
+    }
+    const h = await hash(senha);
+    if(h!==aluno.senha) return toast('Senha incorreta. Procure o professor para liberar a redefinição.');
+    sessao={tipo:'aluno', turmaId:turma.id, alunoId:aluno.id}; abrirApp(); return;
+  }
+  if(b.id==='btnSair'){ sessao=null; ctx={}; vista='capa'; telaAcesso(); return; }
+  if(b.dataset.vista){ vista=b.dataset.vista; ctx.aba=null; render(); return; }
+});
+
+function modalNovaSenha(turma, aluno){
+  abrirModal(`
+    <h3>Cadastrar senha</h3>
+    <p class="desc" style="color:var(--tinta-fraca);font-size:13.5px">${esc(aluno.nome)} — ${esc(rotuloTurma(turma))}. Escolha uma senha para ver suas notas.</p>
+    <div style="display:grid;gap:12px">
+      <div><label>Nova senha</label><input type="password" id="ns1"></div>
+      <div><label>Repetir senha</label><input type="password" id="ns2"></div>
+      <div class="acoes"><button class="btn" id="okNS">Salvar senha e entrar</button><button class="btn sec" data-fechar>Cancelar</button></div>
+    </div>`);
+  $('#okNS').onclick = async ()=>{
+    const a=$('#ns1').value, b=$('#ns2').value;
+    if(a.length<4) return toast('Use pelo menos 4 caracteres.');
+    if(a!==b) return toast('As senhas não coincidem.');
+    aluno.senha = await hash(a); aluno.resetLiberado=false;
+    salvar(); fecharModal();
+    sessao={tipo:'aluno', turmaId:turma.id, alunoId:aluno.id}; abrirApp();
+  };
+}
+
+/* ---------------- modais ---------------- */
+function abrirModal(html){
+  $('#modais').innerHTML = `<div class="modal"><div class="cx">${html}</div></div>`;
+  const cx = $('#modais .modal');
+  cx.addEventListener('click', e=>{ if(e.target===cx || e.target.hasAttribute('data-fechar')) fecharModal(); });
+  document.addEventListener('keydown', escFechar);
+}
+function fecharModal(){ $('#modais').innerHTML=''; document.removeEventListener('keydown', escFechar); }
+function escFechar(e){ if(e.key==='Escape') fecharModal(); }
+
+/* ---------------- navegação ---------------- */
+const MENU = [
+  ['capa','Minha disciplina'],
+  ['turmas','Minhas turmas'],
+  ['avaliacoes','Avaliações'],
+  ['lancamento','Lançar notas'],
+  ['fechamento','Nota final'],
+  ['historico','Histórico'],
+  ['impressao','Impressão'],
+  ['nuvem','Sincronização'],
+];
+function abrirApp(){
+  $('#acesso').style.display='none';
+  $('#app').classList.add('ativo');
+  $('#marcaNome').textContent = DB.capa.disciplina || 'Caderneta';
+  $('#marcaSelo').textContent = sessao.tipo==='prof' ? ((profAtual()||{}).nome||'Professor') : (sessao.tipo==='gerente'?'Gerenciador':'Aluno');
+  $('#app').classList.toggle('aluno', sessao.tipo==='aluno');
+  $('#app').classList.toggle('gerente', sessao.tipo==='gerente');
+  if(sessao.tipo==='gerente'){ $('#menu').innerHTML=''; renderGerente(); return; }
+  if(sessao.tipo==='aluno'){ $('#menu').innerHTML=''; $('#statusSalvo').textContent=''; renderAluno(); return; }
+  $('#menu').innerHTML = seletorDisciplina() +
+    MENU.map((m,i)=>`<button data-vista="${m[0]}" class="${vista===m[0]?'on':''}"><span class="num">${String(i+1).padStart(2,'0')}</span>${m[1]}</button>`).join('');
+  ligarSeletorDisciplina();
+  render();
+  pintaNuvem();
+  if(!nuvemLigada()) setTimeout(()=>toast('Aparelho fora da nuvem — peça o link ao gerenciador.'), 900);
+}
+/* Enquanto há um campo em edição, redesenhar a tela apagaria o que está
+   sendo digitado. Nesses casos o redesenho fica guardado para depois. */
+var renderPendente=false;
+function editando(){
+  const a=document.activeElement;
+  if(!a) return false;
+  if(!['INPUT','TEXTAREA','SELECT'].includes(a.tagName)) return false;
+  return !a.readOnly && !a.disabled;
+}
+function renderSeguro(){
+  if(editando()){ renderPendente=true; return; }
+  renderPendente=false; render();
+}
+document.addEventListener('focusout', ()=>{
+  setTimeout(()=>{ if(renderPendente && !editando() && sessao){ renderPendente=false; render(); } }, 250);
+});
+
+function seletorDisciplina(){
+  const lista = discsDoProf(profAtual());
+  if(lista.length<2) return '';
+  const atual = discAtiva();
+  return `<div style="padding:2px 12px 12px">
+    <label style="color:#9fc0d0">Disciplina em uso</label>
+    <select id="selDisc" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)">
+      ${lista.map(d=>`<option ${normal(d)===normal(atual)?'selected':''}>${esc(d)}</option>`).join('')}
+    </select>
+  </div>`;
+}
+function ligarSeletorDisciplina(){
+  const s=$('#selDisc'); if(!s) return;
+  s.onchange=()=>{ ctx.disc=s.value; ctx.aval=null; render(); toast('Trabalhando em '+s.value+'.'); };
+}
+
+function render(){
+  if(sessao.tipo==='aluno') return renderAluno();
+  if(sessao.tipo==='gerente') return renderGerente();
+  const sd=$('#selDisc');
+  if(sd && normal(sd.value)!==normal(discAtiva())) sd.value=discAtiva();
+  $$('#menu button').forEach(b=>b.classList.toggle('on', b.dataset.vista===vista));
+  const alvo = $('#tela');
+  ({capa:vCapa, turmas:vTurmas, avaliacoes:vAvaliacoes, lancamento:vLancamento,
+    fechamento:vFechamento, historico:vHistorico, impressao:vImpressao, nuvem:vNuvem}[vista]||vCapa)(alvo);
+}
+</script>
+<script>
+/* =======================================================================
+   MOTOR DE CÁLCULO
+   ======================================================================= */
+const chaveApl = (t,a)=> t+'::'+a;
+function apl(turmaId, avalId, criar){
+  const k = chaveApl(turmaId, avalId);
+  if(!DB.aplicacoes[k] && criar) DB.aplicacoes[k] = {visivel:false, liberadoEm:null, notas:{}};
+  return DB.aplicacoes[k] || null;
+}
+/* ----- turmas, acessos e disciplinas ----- */
+const rotuloTurma = t => !t ? '—' :
+  [[t.serie?t.serie+'º':'', t.nome||''].filter(Boolean).join(' '), t.etapa, t.turno].filter(Boolean).join(' · ');
+function ordTurma(a,b){
+  return (a.etapa||'').localeCompare(b.etapa||'','pt-BR')
+      || String(a.serie||'').localeCompare(String(b.serie||''),'pt-BR',{numeric:true})
+      || (a.turno||'').localeCompare(b.turno||'','pt-BR')
+      || (a.nome||'').localeCompare(b.nome||'','pt-BR');
+}
+/* o acesso é por professor + turma + disciplina */
+const chaveAcesso = (p,t,d)=> p+'::'+t+'::'+(d||'');
+const acessoDe = (p,t,d)=> DB.acessos[chaveAcesso(p,t,d)] || null;
+const temAcesso = (p,t,d)=> (acessoDe(p,t,d)||{}).status==='ativo';
+/* acesso em qualquer disciplina — usado para a lista de alunos, que é da turma */
+function temAcessoQualquer(p,t){
+  return Object.keys(DB.acessos).some(k=>{
+    const [pid,tid]=k.split('::');
+    return pid===p && tid===t && DB.acessos[k].status==='ativo';
+  });
+}
+function turmasDoProf(p, disc){
+  return DB.turmas.filter(t=> disc ? temAcesso(p,t.id,disc) : temAcessoQualquer(p,t.id)).sort(ordTurma);
+}
+/* disciplinas em que o professor tem acesso àquela turma */
+function discsNaTurma(p, turmaId){
+  return discsDoProf(p).filter(d=>temAcesso(p,turmaId,d));
+}
+function partesAcesso(k){
+  const partes = k.split('::');
+  return {profId:partes[0], turmaId:partes[1], disc:partes.slice(2).join('::')};
+}
+const avaliacoesDoProf = (p,disc) => DB.avaliacoes.filter(a=>a.profId===p && avalDaDisc(a,disc));
+const profPorId = id => DB.professores.find(p=>p.id===id) || null;
+/* uma série é a combinação etapa + ano; as matérias são definidas por série */
+const chaveSerie = t => (t.etapa||'')+'::'+(t.serie||'');
+const rotuloSerie = k => { const [e,se]=k.split('::'); return [se?se+'º':'', e].filter(Boolean).join(' — '); };
+const materiasDaSerie = k => (DB.catalogos.materias||{})[k] || [];
+const materiasDaTurma = t => t ? materiasDaSerie(chaveSerie(t)) : [];
+function seriesCadastradas(){
+  const k={}; DB.turmas.forEach(t=>k[chaveSerie(t)]=1);
+  Object.keys(DB.catalogos.materias||{}).forEach(x=>k[x]=1);
+  return Object.keys(k).sort();
+}
+/* as disciplinas do professor são as matérias que a coordenação atribuiu a ele */
+const discsDoProf = p => { const o = (typeof p==='string')?profPorId(p):p;
+  if(!o) return [];
+  const set={};
+  Object.keys(DB.acessos||{}).forEach(k=>{
+    const a=partesAcesso(k);
+    if(a.profId===o.id && DB.acessos[k].status==='ativo' && a.disc) set[a.disc]=1;
+  });
+  const l=Object.keys(set).sort((x,y)=>x.localeCompare(y,'pt-BR'));
+  if(l.length) return l;
+  if(Array.isArray(o.disciplinas) && o.disciplinas.length) return o.disciplinas;
+  return o.disciplina ? [o.disciplina] : []; };
+const disciplinaDe = id => discsDoProf(id).join(' · ') || 'Sem disciplina';
+/* disciplina em que o professor está trabalhando agora */
+function discAtiva(){
+  const eu = profAtual(); if(!eu) return '';
+  const lista = discsDoProf(eu);
+  if(!lista.length) return '';
+  if(!ctx.disc || !lista.some(d=>normal(d)===normal(ctx.disc))) ctx.disc = lista[0];
+  return ctx.disc;
+}
+const avalDaDisc = (a,disc)=> !disc || normal(a.disc||'')===normal(disc);
+function calcDe(turmaId, profId, disc){
+  const k = turmaId+'::'+profId+'::'+(disc||'');
+  if(!DB.calculos[k]) DB.calculos[k] = {modo:'media', maxFinal:10, pesos:{}};
+  return DB.calculos[k];
+}
+/* avaliações já aplicadas naquela turma */
+function avaliacoesDaTurma(turmaId, profId, disc){
+  return DB.avaliacoes.filter(a => (!profId || a.profId===profId) && avalDaDisc(a,disc)
+    && DB.aplicacoes[chaveApl(turmaId,a.id)]);
+}
+/* pares professor + disciplina com alguma avaliação liberada para a turma */
+function disciplinasDaTurma(turmaId){
+  const vistos={}, pares=[];
+  DB.avaliacoes.forEach(a=>{
+    const ap = DB.aplicacoes[chaveApl(turmaId,a.id)];
+    if(!ap || !ap.visivel) return;
+    const prof = profPorId(a.profId); if(!prof) return;
+    const disc = a.disc || (discsDoProf(prof)[0]||'');
+    const k = a.profId+'::'+disc;
+    if(vistos[k]) return; vistos[k]=1;
+    pares.push({chave:k, prof, disc: disc||'Sem disciplina'});
+  });
+  return pares.sort((x,y)=>x.disc.localeCompare(y.disc,'pt-BR'));
+}
+function lanc(turmaId, avalId, alunoId, subId, criar){
+  const a = apl(turmaId, avalId, criar); if(!a) return null;
+  if(!a.notas[alunoId]){ if(!criar) return null; a.notas[alunoId]={}; }
+  if(!a.notas[alunoId][subId]){ if(!criar) return null; a.notas[alunoId][subId]={}; }
+  return a.notas[alunoId][subId];
+}
+/* cada sub-avaliação diz em quais turmas vale; sem lista, vale em todas (dados antigos) */
+const subValeNa = (s, turmaId) => !Array.isArray(s.turmas) ? true : s.turmas.includes(turmaId);
+const subsDaTurma = (a, turmaId) => (a.subs||[]).filter(s=>subValeNa(s, turmaId));
+const turmasDaAval = a => {
+  const ids={};
+  (a.subs||[]).forEach(s=>{ if(Array.isArray(s.turmas)) s.turmas.forEach(t=>ids[t]=1); });
+  return Object.keys(ids);
+};
+/* a folha de notas de uma turma existe enquanto houver parte dirigida a ela */
+function ajustarAplicacoes(a){
+  const alvo = turmasDaAval(a);
+  alvo.forEach(tid=>{ if(DB.turmas.some(t=>t.id===tid)) apl(tid, a.id, true); });
+  Object.keys(DB.aplicacoes).forEach(k=>{
+    const [tid, aid] = k.split('::');
+    if(aid!==a.id || alvo.includes(tid)) return;
+    if(!Object.keys(DB.aplicacoes[k].notas||{}).length) delete DB.aplicacoes[k];
+  });
+}
+const dataBR = d => d ? new Date(d+'T00:00').toLocaleDateString('pt-BR') : '';
+function pesoTotal(sub){ return (sub.questoes||[]).reduce((s,q)=>s+num(q.peso,1),0) || 0; }
+
+/* nota de uma sub-avaliação — null = sem lançamento */
+function notaSub(sub, ent){
+  if(!ent) return null;
+  if(ent.faltou) return 0;
+  const max = num(sub.max,0), min = num(sub.notaMin,0);
+  if(sub.modo==='acertos'){
+    const qs = sub.questoes||[]; const pt = pesoTotal(sub);
+    let frac = null;
+    if(Array.isArray(ent.q) && qs.length && pt>0){
+      let obt=0; qs.forEach((q,i)=>{ if(ent.q[i]) obt+=num(q.peso,1); });
+      frac = obt/pt;
+    }else if(ent.nAcertos!==undefined && ent.nAcertos!==null && ent.nAcertos!=='' && qs.length){
+      frac = Math.min(1, num(ent.nAcertos,0)/qs.length);
+    }
+    if(frac===null) return null;
+    return min + frac*(max-min);
+  }
+  if(ent.pontos===undefined || ent.pontos===null || ent.pontos==='') return null;
+  return num(ent.pontos,0);
+}
+/* nota da avaliação inteira para um aluno — null = sem lançamento */
+function notaAval(aval, turmaId, alunoId){
+  const a = apl(turmaId, aval.id); if(!a) return null;
+  const subs = subsDaTurma(aval, turmaId); if(!subs.length) return null;
+  const notas = subs.map(s=> notaSub(s, (a.notas[alunoId]||{})[s.id]));
+  const dados = notas.map((n,i)=>({n, s:subs[i]})).filter(x=>x.n!==null);
+  if(!dados.length) return null;
+  if(aval.modoSub==='media'){
+    const fr = dados.map(x=> num(x.s.max,0)>0 ? x.n/num(x.s.max,1) : 0);
+    return (fr.reduce((s,v)=>s+v,0)/fr.length) * num(aval.max,10);
+  }
+  return dados.reduce((s,x)=>s+x.n,0);
+}
+/* nota final do aluno na turma, dentro de uma disciplina */
+function notaFinal(turma, alunoId, profId, disc){
+  const avs = avaliacoesDaTurma(turma.id, profId, disc);
+  const calc = calcDe(turma.id, profId, disc);
+  const itens = avs.map(av=>{
+    const n = notaAval(av, turma.id, alunoId);
+    return { av, n, frac: (n===null||num(av.max,0)<=0) ? null : n/num(av.max,1) };
+  }).filter(i=>i.frac!==null);
+  if(!itens.length) return {nota:null, max:num(calc.maxFinal,10), itens:[]};
+  if(calc.modo==='pesos'){
+    let soma=0;
+    itens.forEach(i=> soma += i.frac * num((calc.pesos||{})[i.av.id], 0));
+    return {nota:soma, max:num(calc.maxFinal,10), itens};
+  }
+  const m = itens.reduce((s,i)=>s+i.frac,0)/itens.length;
+  return {nota: m*num(calc.maxFinal,10), max:num(calc.maxFinal,10), itens};
+}
+function somaSubs(aval){ return (aval.subs||[]).reduce((s,x)=>s+num(x.max,0),0); }
+
+/* histórico */
+function registrar(turmaId, alunoId, avalId, subId, antes, depois, obs){
+  if(antes===depois) return;
+  DB.historico.unshift({ts:Date.now(), turma:turmaId, aluno:alunoId, aval:avalId, sub:subId, antes, depois,
+    obs:obs||'', autor:(profAtual()||{}).nome||''});
+  if(DB.historico.length>4000) DB.historico.length=4000;
+}
+const nomeTurma = id => rotuloTurma(DB.turmas.find(t=>t.id===id));
+const nomeAluno = (tid,aid) => { const t=DB.turmas.find(x=>x.id===tid); if(!t) return '—'; const a=t.alunos.find(x=>x.id===aid); return a?a.nome:'—'; };
+const nomeAval  = id => (DB.avaliacoes.find(a=>a.id===id)||{}).nome || '—';
+function nomeSub(avalId, subId){
+  const a=DB.avaliacoes.find(x=>x.id===avalId); if(!a) return '—';
+  const s=(a.subs||[]).find(x=>x.id===subId); return s?s.nome:'—';
+}
+
+/* =======================================================================
+   01 · MINHA DISCIPLINA
+   ======================================================================= */
+function vCapa(alvo){
+  const eu = profAtual() || {};
+  const c = DB.capa;
+  const minhas = turmasDoProf(eu.id, discAtiva());
+  const pend = Object.keys(DB.acessos).filter(k=>{
+    const a=partesAcesso(k); return a.profId===eu.id && DB.acessos[k].status==='pendente'; });
+  alvo.innerHTML = `
+  <div class="cabeca">
+    <div><h2>Minha disciplina</h2><div class="sub">Suas avaliações e notas ficam separadas das dos outros professores.</div></div>
+  </div>
+  <div class="painel">
+    <div class="linha" style="margin-bottom:12px">
+      <div class="campo"><label>Meu nome</label><input id="c_nome" value="${esc(eu.nome||'')}"></div>
+      <button class="btn" id="salvarConta">Salvar nome</button>
+    </div>
+    <label>Disciplinas que leciono</label>
+    <div class="lista" style="margin-bottom:10px">
+      ${discsDoProf(eu).length? discsDoProf(eu).map(d=>`<div class="item" style="padding:8px 12px">
+          <span class="t">${esc(d)}</span>
+          ${normal(d)===normal(discAtiva())?'<span class="chip ok">em uso agora</span>':`<button class="btn min sec" data-usardisc="${esc(d)}">Trabalhar nesta</button>`}
+        </div>`).join('')
+        : '<div class="vazio"><strong>Nenhuma disciplina atribuída</strong>Peça ao gerenciador para cadastrar a sua.</div>'}
+    </div>
+    <div class="aviso">As disciplinas vêm das turmas que a coordenação lhe atribuiu. Cada uma tem o próprio banco de avaliações, as próprias notas e a própria regra de fechamento — e o aluno escolhe qual quer ver.</div>
+  </div>
+
+  <div class="grade">
+    <div class="painel" style="margin:0"><h3>${minhas.length}</h3><p class="desc">turma(s) em ${esc(discAtiva()||'—')}</p></div>
+    <div class="painel" style="margin:0"><h3>${pend.length}</h3><p class="desc">pedido(s) de acesso aguardando</p></div>
+    <div class="painel" style="margin:0"><h3>${avaliacoesDoProf(eu.id, discAtiva()).length}</h3><p class="desc">avaliação(ões) em ${esc(discAtiva()||'—')}</p></div>
+  </div>
+
+  <div class="painel">
+    <h3>Dados da escola</h3>
+    <p class="desc">Definidos pelo gerenciador — aparecem no cabeçalho das listas impressas.</p>
+    <div class="rolagem"><table class="pauta"><tbody>
+      <tr><td class="nome">Instituição</td><td>${esc(c.instituicao)||'<span style="color:var(--tinta-fraca)">não informada</span>'}</td></tr>
+      <tr><td class="nome">Período</td><td>${esc([c.periodo&&c.periodo+'º',c.tipoPeriodo,c.ano].filter(Boolean).join(' '))}</td></tr>
+    </tbody></table></div>
+  </div>
+
+  <div class="painel">
+    <h3>Minha senha</h3>
+    <p class="desc">Se esquecer, o gerenciador redefine.</p>
+    <div class="linha">
+      <div class="campo"><label>Senha atual</label><input type="password" id="sa"></div>
+      <div class="campo"><label>Nova senha</label><input type="password" id="sn"></div>
+      <div class="campo"><label>Dica</label><input id="sd" value="${esc(eu.dica||'')}"></div>
+      <button class="btn sec" id="trocarSenha">Trocar senha</button>
+    </div>
+  </div>`;
+
+  $('#salvarConta').onclick=()=>{
+    const p=profAtual(); if(!p) return;
+    const n=$('#c_nome').value.trim(); if(!n) return toast('O nome não pode ficar vazio.');
+    if(DB.professores.some(x=>x.id!==p.id && normal(x.nome)===normal(n))) return toast('Já existe outro professor com esse nome.');
+    p.nome=n; salvar(); $('#marcaSelo').textContent=p.nome; render(); toast('Nome salvo.');
+  };
+  $$('[data-usardisc]').forEach(b=>b.onclick=()=>{ ctx.disc=b.dataset.usardisc; ctx.aval=null; abrirApp(); toast('Trabalhando em '+b.dataset.usardisc+'.'); });
+  $('#trocarSenha').onclick=async()=>{
+    const p=profAtual(); if(!p) return;
+    if(await hash($('#sa').value)!==p.hash) return toast('Senha atual incorreta.');
+    const n=$('#sn').value; if(n.length<4) return toast('Use pelo menos 4 caracteres.');
+    p.hash=await hash(n); p.dica=$('#sd').value.trim(); salvar(); toast('Senha trocada.');
+  };
+}
+
+/* =======================================================================
+   02 · MINHAS TURMAS
+   As turmas são criadas pelo gerenciador; o professor pede acesso,
+   cuida da lista de alunos e solicita exclusões.
+   ======================================================================= */
+function vTurmas(alvo){
+  const eu = profAtual() || {};
+  const disc = discAtiva();
+  const turmaPedido = DB.turmas.find(t=>t.id===ctx.turmaPedido) || [...DB.turmas].sort(ordTurma)[0] || null;
+  const materias = materiasDaTurma(turmaPedido).filter(m=>!acessoDe(eu.id, turmaPedido&&turmaPedido.id, m));
+  const minhas = turmasDoProf(eu.id, disc);
+  const pendentes = Object.keys(DB.acessos).filter(k=>{
+      const a=partesAcesso(k); return a.profId===eu.id && DB.acessos[k].status==='pendente'; })
+    .map(k=>{ const a=partesAcesso(k); return {turma:DB.turmas.find(t=>t.id===a.turmaId), disc:a.disc}; })
+    .filter(x=>x.turma);
+  const sel = DB.turmas.find(t=>t.id===ctx.turma && temAcessoQualquer(eu.id,t.id)) || null;
+
+  alvo.innerHTML = `
+  <div class="cabeca">
+    <div><h2>Minhas turmas</h2><div class="sub">A coordenação cria as turmas; você pede acesso a cada uma indicando qual disciplina vai lecionar nela.</div></div>
+  </div>
+
+  <div class="painel">
+    <h3>Pedir uma turma à coordenação</h3>
+    <p class="desc">Normalmente é o gerenciador quem atribui. Use isto quando faltar alguma turma sua.</p>
+    ${!DB.turmas.length? `<div class="aviso">Nenhuma turma cadastrada na escola ainda.</div>`
+    : `<div class="linha">
+      <div class="campo"><label>Turma</label><select id="selPedir">
+        ${[...DB.turmas].sort(ordTurma).map(t=>`<option value="${t.id}" ${turmaPedido&&t.id===turmaPedido.id?'selected':''}>${esc(rotuloTurma(t))}</option>`).join('')}
+      </select></div>
+      ${materias.length? `<div class="campo"><label>Matéria</label><select id="selDiscPedir">
+          ${materias.map(m=>`<option>${esc(m)}</option>`).join('')}
+        </select></div>
+        <button class="btn" id="pedirAcesso">Solicitar</button>`
+      : `<div class="campo"><div class="aviso" style="margin:0">${materiasDaTurma(turmaPedido).length
+          ? 'Você já tem todas as matérias desta turma.'
+          : 'Esta série ainda não tem matérias definidas pela coordenação.'}</div></div>`}
+    </div>`}
+    ${pendentes.length?`<div class="aviso" style="margin-top:12px">Aguardando liberação: ${pendentes.map(x=>`${esc(rotuloTurma(x.turma))} <span class="pill">${esc(x.disc||'—')}</span>`).join(' · ')}</div>`:''}
+  </div>
+
+  <div class="painel">
+    <h3>Turmas liberadas em ${esc(disc||'—')}</h3>
+    <p class="desc">Trocando a disciplina na barra lateral, você vê as turmas da outra matéria.</p>
+    ${minhas.length? `<div class="lista">${minhas.map(t=>`
+      <div class="item ${t.id===ctx.turma?'sel':''}">
+        <div><div class="t">${esc(rotuloTurma(t))}</div>
+          <div class="d">${t.alunos.length} aluno(s) · ${avaliacoesDaTurma(t.id, eu.id, disc).length} avaliação(ões) em ${esc(disc||'—')}
+          ${discsNaTurma(eu,t.id).length>1?` · você também leciona ${esc(discsNaTurma(eu,t.id).filter(d=>normal(d)!==normal(disc)).join(', '))} aqui`:''}</div></div>
+        <div class="acoes"><button class="btn min ${t.id===ctx.turma?'':'sec'}" data-abrir="${t.id}">${t.id===ctx.turma?'Aberta':'Abrir'}</button></div>
+      </div>`).join('')}</div>`
+    : `<div class="vazio"><strong>Nenhuma turma liberada em ${esc(disc||'—')}</strong>Peça acesso acima e avise a coordenação.</div>`}
+  </div>
+  ${sel?painelAlunos(sel):''}`;
+
+  if($('#selPedir')) $('#selPedir').onchange=e=>{ ctx.turmaPedido=e.target.value; render(); };
+  if($('#pedirAcesso')) $('#pedirAcesso').onclick=()=>{
+    const id=$('#selPedir').value, d=$('#selDiscPedir').value;
+    DB.acessos[chaveAcesso(eu.id,id,d)]={status:'pendente', pedidoEm:Date.now(), liberadoEm:null};
+    salvar(); render(); toast(`Pedido enviado: ${d} nessa turma.`);
+  };
+  $$('[data-abrir]').forEach(b=>b.onclick=()=>{ ctx.turma=b.dataset.abrir; render(); });
+  if(sel) ligarAlunos(sel);
+}
+
+function painelAlunos(t){
+  const eu = profAtual()||{};
+  const alunos=[...t.alunos].sort(ordAlfa);
+  const meusPedidos = DB.pedidos.filter(x=>x.turmaId===t.id && x.status==='pendente');
+  return `
+  <div class="painel">
+    <h3>Alunos de ${esc(rotuloTurma(t))}</h3>
+    <p class="desc">A lista é da escola inteira: o que você acrescentar aqui vale para todos os professores da turma.</p>
+    <div class="tabs">
+      <button class="${ctx.abaAluno!=='lista'?'on':''}" data-tabaluno="um">Um por vez</button>
+      <button class="${ctx.abaAluno==='lista'?'on':''}" data-tabaluno="lista">Colar lista</button>
+    </div>
+    ${ctx.abaAluno==='lista'? `
+      <label>Cole os nomes — um por linha</label>
+      <textarea id="colaLista" style="min-height:150px" placeholder="Ana Beatriz Sousa&#10;Carlos Eduardo Lima&#10;3. João Vitor Alves"></textarea>
+      <div class="aviso">Numeração, marcadores e espaços em excesso são removidos. Nomes repetidos são ignorados.</div>
+      <button class="btn" id="addLista">Adicionar à turma</button>`
+    : `
+      <div class="linha">
+        <div class="campo"><label>Nome completo</label><input id="novoAluno" placeholder="Nome como consta na chamada"></div>
+        <button class="btn" id="addAluno">Adicionar aluno</button>
+      </div>`}
+    ${alunos.length? `<div class="rolagem" style="margin-top:16px"><table class="pauta">
+      <thead><tr><th class="ord">Nº</th><th>Nome</th><th>Senha do aluno</th><th style="width:1%">Ações</th></tr></thead>
+      <tbody>${alunos.map((a,i)=>{
+        const ped = meusPedidos.find(x=>x.alunoId===a.id);
+        return `<tr>
+        <td class="ord">${i+1}</td>
+        <td class="nome">${esc(a.nome)}</td>
+        <td>${ped?'<span class="chip esp">exclusão solicitada</span>'
+          :(a.resetLiberado?'<span class="chip esp">redefinição liberada</span>'
+          :(a.senha?'<span class="chip ok">cadastrada</span>':'<span class="chip off">ainda não criada</span>'))}</td>
+        <td><div class="acoes">
+          <button class="btn min sec" data-senha="${a.id}">Senha</button>
+          ${ped?`<button class="btn min sec" data-cancped="${ped.id}">Cancelar pedido</button>`
+              :`<button class="btn min perigo" data-pedir="${a.id}">Pedir exclusão</button>`}
+        </div></td></tr>`;}).join('')}</tbody></table></div>
+      <div class="aviso" style="margin-top:12px">Só o gerenciador exclui alunos — assim ninguém apaga por engano o histórico de notas de outra disciplina.</div>`
+    : `<div class="vazio" style="margin-top:16px"><strong>Lista vazia</strong>Adicione os alunos para poder lançar notas.</div>`}
+  </div>`;
+}
+
+function ligarAlunos(t){
+  $$('[data-tabaluno]').forEach(b=>b.onclick=()=>{ ctx.abaAluno=b.dataset.tabaluno==='lista'?'lista':'um'; render(); });
+  const add = nome=>{
+    nome=nome.replace(/^\s*\d+\s*[-–.)°º]?\s*/,'').replace(/^[-•*]\s*/,'').replace(/\s+/g,' ').trim();
+    if(!nome) return false;
+    if(t.alunos.some(a=>normal(a.nome)===normal(nome))) return false;
+    t.alunos.push({id:uid(), nome, senha:'', resetLiberado:false}); return true;
+  };
+  if($('#addAluno')) $('#addAluno').onclick=()=>{
+    if(!add($('#novoAluno').value)) return toast('Nome vazio ou já existente.');
+    salvar(); render(); toast('Aluno adicionado.');
+  };
+  if($('#addLista')) $('#addLista').onclick=()=>{
+    const linhas=$('#colaLista').value.split(/\r?\n/); let n=0;
+    linhas.forEach(l=>{ if(add(l)) n++; });
+    salvar(); render(); toast(n?`${n} aluno(s) adicionado(s).`:'Nenhum nome novo encontrado.');
+  };
+  $$('[data-pedir]').forEach(b=>b.onclick=()=>{
+    const a=t.alunos.find(x=>x.id===b.dataset.pedir);
+    const motivo = prompt(`Pedir ao gerenciador a exclusão de ${a.nome}.\nMotivo (opcional):`,'');
+    if(motivo===null) return;
+    DB.pedidos.unshift({id:uid(), tipo:'excluir-aluno', profId:(profAtual()||{}).id,
+      turmaId:t.id, alunoId:a.id, nome:a.nome, motivo:motivo.trim(), status:'pendente', em:Date.now()});
+    salvar(); render(); toast('Pedido enviado ao gerenciador.');
+  });
+  $$('[data-cancped]').forEach(b=>b.onclick=()=>{
+    DB.pedidos=DB.pedidos.filter(x=>x.id!==b.dataset.cancped); salvar(); render(); toast('Pedido cancelado.');
+  });
+  $$('[data-senha]').forEach(b=>b.onclick=()=>{
+    const a=t.alunos.find(x=>x.id===b.dataset.senha);
+    abrirModal(`
+      <h3>Senha de ${esc(a.nome)}</h3>
+      <p style="color:var(--tinta-fraca);font-size:13.5px">A senha vale para todas as disciplinas. Fica guardada cifrada — nem você a lê.</p>
+      <div style="display:grid;gap:12px">
+        <div><label>Definir nova senha</label><input type="password" id="msn" placeholder="Mínimo 4 caracteres"></div>
+        <div class="acoes">
+          <button class="btn" id="mDef">Definir senha</button>
+          <button class="btn sec" id="mLib">${a.resetLiberado?'Cancelar liberação':'Liberar redefinição pelo aluno'}</button>
+          <button class="btn sec" data-fechar>Fechar</button>
+        </div>
+      </div>`);
+    $('#mDef').onclick=async()=>{
+      const v=$('#msn').value; if(v.length<4) return toast('Use pelo menos 4 caracteres.');
+      a.senha=await hash(v); a.resetLiberado=false; salvar(); fecharModal(); render(); toast('Senha definida.');
+    };
+    $('#mLib').onclick=()=>{ a.resetLiberado=!a.resetLiberado; salvar(); fecharModal(); render();
+      toast(a.resetLiberado?'O aluno criará a senha no próximo acesso.':'Liberação cancelada.'); };
+  });
+}
+
+/* =======================================================================
+   IMAGENS — colar da área de transferência, arrastar ou escolher arquivo
+   ======================================================================= */
+function comprimir(file, cb){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const M=1200, e=Math.min(1, M/Math.max(img.width,img.height));
+      const cv=document.createElement('canvas');
+      cv.width=Math.round(img.width*e); cv.height=Math.round(img.height*e);
+      const cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height);
+      cx.drawImage(img,0,0,cv.width,cv.height);
+      cb(cv.toDataURL('image/jpeg',0.72));
+    };
+    img.onerror=()=>cb(null);
+    img.src=fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+function zonaColar(el, atual, onImg){
+  const pinta = d => el.innerHTML = d
+    ? `<img src="${d}" alt="Imagem anexada">
+       <div style="margin-top:8px;font-size:12px">Clique aqui e cole (Ctrl+V) para trocar
+       · <button class="btn min sec" data-arquivo>Escolher arquivo</button>
+       · <button class="btn min perigo" data-limpar>Remover</button></div>`
+    : `<strong>Clique aqui e cole a imagem</strong> (Ctrl+V) — ou arraste o arquivo
+       <div style="margin-top:8px"><button class="btn min sec" data-arquivo>Escolher arquivo</button></div>`;
+  pinta(atual);
+  const usa = f => { if(!f) return; comprimir(f, d=>{ if(!d) return toast('Não consegui ler essa imagem.'); onImg(d); pinta(d); }); };
+  el.tabIndex = 0;
+  el.addEventListener('focus', ()=>{ el.style.borderColor='var(--azul)'; zonaAtiva=el; });
+  el.addEventListener('blur',  ()=>{ el.style.borderColor=''; });
+  el.addEventListener('click', e=>{
+    if(e.target.hasAttribute('data-limpar')){ e.stopPropagation(); onImg(''); pinta(''); return; }
+    if(e.target.hasAttribute('data-arquivo')){
+      e.stopPropagation();
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+      inp.onchange=()=>usa(inp.files[0]); inp.click(); return;
+    }
+    el.focus();
+  });
+  const colar = e=>{
+    const it=[...((e.clipboardData||{}).items||[])].find(i=>i.type.startsWith('image/'));
+    if(it){ e.preventDefault(); usa(it.getAsFile()); }
+  };
+  el.addEventListener('paste', colar);
+  el._colar = colar;
+  el.addEventListener('dragover', e=>{e.preventDefault(); el.style.borderColor='var(--azul)';});
+  el.addEventListener('dragleave', ()=>el.style.borderColor='');
+  el.addEventListener('drop', e=>{ e.preventDefault(); el.style.borderColor=''; usa(e.dataTransfer.files[0]); });
+}
+var zonaAtiva = null;
+document.addEventListener('paste', e=>{
+  const alvo=document.activeElement;
+  if(alvo && (alvo.tagName==='INPUT'||alvo.tagName==='TEXTAREA')) return;
+  if(zonaAtiva && document.body.contains(zonaAtiva) && zonaAtiva._colar) zonaAtiva._colar(e);
+});
+
+/* =======================================================================
+   03 · AVALIAÇÕES (banco reutilizável)
+   ======================================================================= */
+function novaAval(nome){
+  return {id:uid(), profId:(profAtual()||{}).id, disc:discAtiva(), nome, descricao:'', max:10, modoSub:'soma', subs:[]};
+}
+function novaSub(nome){
+  const eu = profAtual() || {};
+  return {id:uid(), nome:nome||'', descricao:'', data:'', max:10, notaMin:0, modo:'direta',
+          turmas: turmasDoProf(eu.id, discAtiva()).map(t=>t.id),
+          questoes:[], imagem:'', gabTexto:'', gabImagem:''};
+}
+const LETRAS=['A','B','C','D','E'];
+
+function vAvaliacoes(alvo){
+  const eu = profAtual() || {};
+  const disc = discAtiva();
+  const minhas = avaliacoesDoProf(eu.id, disc);
+  const av = minhas.find(a=>a.id===ctx.aval) || null;
+  alvo.innerHTML = `
+  <div class="cabeca">
+    <div><h2>Avaliações</h2><div class="sub">Banco de ${esc(disc||'sua disciplina')} — a mesma avaliação pode ser aplicada em quantas turmas você quiser.</div></div>
+  </div>
+  <div class="painel">
+    <div class="linha" style="margin-bottom:14px">
+      <div class="campo"><label>Nome da avaliação</label><input id="novaAv" placeholder="Avaliação Bimestral · Produção textual · Atividades"></div>
+      <button class="btn" id="addAv">Criar avaliação</button>
+    </div>
+    ${minhas.length? `<div class="lista">${minhas.map(a=>{
+      const soma=somaSubs(a), ok = a.modoSub==='media' || Math.abs(soma-num(a.max,0))<0.001;
+      const turmas = DB.turmas.filter(t=>DB.aplicacoes[chaveApl(t.id,a.id)]).length;
+      return `<div class="item ${a.id===ctx.aval?'sel':''}">
+        <div>
+          <div class="t">${esc(a.nome)}</div>
+          <div class="d">Vale ${fmt(a.max)} · ${(a.subs||[]).length} sub-avaliação(ões) · aplicada em ${turmas} turma(s)
+          ${!ok?` · <span style="color:var(--carimbo);font-weight:600">as partes somam ${fmt(soma)}</span>`:''}</div>
+        </div>
+        <div class="acoes">
+          <button class="btn min ${a.id===ctx.aval?'':'sec'}" data-editav="${a.id}">${a.id===ctx.aval?'Editando':'Editar'}</button>
+          <button class="btn min sec" data-dupav="${a.id}">Duplicar</button>
+          <button class="btn min perigo" data-delav="${a.id}">Excluir</button>
+        </div></div>`;}).join('')}</div>`
+    : `<div class="vazio"><strong>Banco vazio</strong>Crie a primeira avaliação. Depois você define as partes que a compõem.</div>`}
+  </div>
+  ${av?editorAval(av):''}`;
+
+  $('#addAv').onclick=()=>{
+    const n=$('#novaAv').value.trim(); if(!n) return toast('Dê um nome à avaliação.');
+    const a=novaAval(n); DB.avaliacoes.push(a); ctx.aval=a.id; salvar(); render();
+  };
+  $$('[data-editav]').forEach(b=>b.onclick=()=>{ ctx.aval=b.dataset.editav; render(); });
+  $$('[data-dupav]').forEach(b=>b.onclick=()=>{
+    const o=DB.avaliacoes.find(x=>x.id===b.dataset.dupav);
+    const c=JSON.parse(JSON.stringify(o)); c.id=uid(); c.profId=(profAtual()||{}).id; c.disc=discAtiva(); c.nome=o.nome+' (cópia)';
+    c.subs.forEach(s=>{ s.id=uid(); (s.questoes||[]).forEach(q=>q.id=uid()); });
+    DB.avaliacoes.push(c); ctx.aval=c.id; salvar(); render(); toast('Avaliação duplicada.');
+  });
+  $$('[data-delav]').forEach(b=>b.onclick=()=>{
+    const a=DB.avaliacoes.find(x=>x.id===b.dataset.delav);
+    if(!confirm(`Excluir "${a.nome}" e as notas lançadas dela em todas as turmas?`)) return;
+    DB.avaliacoes=DB.avaliacoes.filter(x=>x.id!==a.id);
+    Object.keys(DB.aplicacoes).forEach(k=>{ if(k.endsWith('::'+a.id)) delete DB.aplicacoes[k]; });
+    if(ctx.aval===a.id) ctx.aval=null;
+    salvar(); render();
+  });
+  if(av) ligarEditorAval(av);
+}
+
+function editorAval(a){
+  const soma=somaSubs(a);
+  const aviso = a.modoSub==='soma'
+    ? (Math.abs(soma-num(a.max,0))<0.001
+        ? `<div class="aviso bom">As partes somam ${fmt(soma)} e fecham exatamente a nota da avaliação.</div>`
+        : `<div class="aviso erro">As partes somam ${fmt(soma)}, mas a avaliação vale ${fmt(a.max)}. Ajuste as pontuações máximas para fechar a conta.</div>`)
+    : `<div class="aviso">Cada parte é convertida em porcentagem, a média das partes lançadas é tirada e multiplicada por ${fmt(a.max)}. As pontuações máximas das partes podem ser diferentes entre si.</div>`;
+  return `
+  <div class="painel">
+    <h3>${esc(a.nome)}</h3>
+    <p class="desc">Nada aqui é obrigatório, tirando o nome e a pontuação máxima.</p>
+    <div class="linha" style="margin-bottom:12px">
+      <div class="campo"><label>Nome</label><input id="av_nome" value="${esc(a.nome)}"></div>
+      <div class="campo" style="flex:0 1 130px"><label>Vale (nota máxima)</label><input type="number" step="0.01" id="av_max" value="${a.max}"></div>
+    </div>
+    <div style="margin-bottom:12px"><label>Descrição</label><textarea id="av_desc" placeholder="Conteúdos, critérios, instruções…">${esc(a.descricao)}</textarea></div>
+    <div style="margin-bottom:6px"><label>Como as partes formam a nota da avaliação</label></div>
+    <div class="escolhas" style="margin-bottom:6px">
+      <button data-modosub="soma" class="${a.modoSub==='soma'?'on':''}">Somar as partes</button>
+      <button data-modosub="media" class="${a.modoSub==='media'?'on':''}">Média das partes</button>
+    </div>
+    ${aviso}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px;flex-wrap:wrap;gap:10px">
+      <h3 style="font-size:16px">Sub-avaliações</h3>
+      <button class="btn sec min" id="addSub">Adicionar sub-avaliação</button>
+    </div>
+    ${(a.subs||[]).length? a.subs.map((s,i)=>cardSub(a,s,i)).join('') :
+      `<div class="vazio"><strong>Sem partes ainda</strong>Uma avaliação pode ter uma única parte ou várias — questões, trabalho, participação, o que fizer sentido.</div>`}
+  </div>`;
+}
+
+/* em quais turmas esta parte foi aplicada */
+function turmasDaSub(s){
+  const eu = profAtual() || {};
+  const turmas = turmasDoProf(eu.id, discAtiva());
+  if(!turmas.length) return `<div class="aviso" style="margin-bottom:10px">Nenhuma turma liberada em ${esc(discAtiva()||'sua disciplina')} — fale com a coordenação.</div>`;
+  const marcada = t => !Array.isArray(s.turmas) || s.turmas.includes(t.id);
+  const n = turmas.filter(marcada).length;
+  return `
+  <div style="margin-bottom:10px">
+    <label>Turmas em que esta parte vale ${n?`<span class="pill">${n} de ${turmas.length}</span>`:'<span class="chip esp">nenhuma marcada</span>'}</label>
+    <div class="escolhas">
+      ${turmas.map(t=>`<button data-subturma="${s.id}::${t.id}" class="${marcada(t)?'on':''}">${esc(rotuloTurma(t))}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function cardSub(a,s,i){
+  const qs=s.questoes||[];
+  return `
+  <div class="subcard" data-sub="${s.id}">
+    <header>
+      <div class="t">${i+1}. ${esc(s.nome||'Parte sem nome')}</div>
+      <div class="acoes">
+        <span class="pill">${s.modo==='acertos'?`${qs.length} questão(ões) · peso total ${fmt(pesoTotal(s))}`:'nota direta'}</span>
+        <button class="btn min sec" data-subup="${s.id}">↑</button>
+        <button class="btn min sec" data-subdown="${s.id}">↓</button>
+        <button class="btn min perigo" data-subdel="${s.id}">Excluir</button>
+      </div>
+    </header>
+    <div class="linha" style="margin-bottom:10px">
+      <div class="campo"><label>Nome</label><input data-f="nome" value="${esc(s.nome)}" placeholder="Questões objetivas"></div>
+      <div class="campo" style="flex:0 1 150px"><label>Data</label><input type="date" data-f="data" value="${esc(s.data)}"></div>
+      <div class="campo" style="flex:0 1 130px"><label>Pontuação máxima</label><input type="number" step="0.01" data-f="max" value="${s.max}"></div>
+    </div>
+    <div style="margin-bottom:10px"><label>Descrição</label><textarea data-f="descricao" style="min-height:56px" placeholder="O que era pedido nesta parte">${esc(s.descricao)}</textarea></div>
+    ${turmasDaSub(s)}
+    <div style="margin-bottom:6px"><label>Como a pontuação é obtida</label></div>
+    <div class="escolhas" style="margin-bottom:10px">
+      <button data-modo="direta" class="${s.modo!=='acertos'?'on':''}">Digitar a pontuação</button>
+      <button data-modo="acertos" class="${s.modo==='acertos'?'on':''}">Calcular por acertos</button>
+    </div>
+    ${s.modo==='acertos'?`
+      <div class="linha" style="margin-bottom:10px">
+        <div class="campo" style="flex:0 1 150px"><label>Quantidade de questões</label>
+          <input type="number" min="0" step="1" data-nq value="${qs.length}"></div>
+        <div class="campo" style="flex:0 1 150px"><label>Nota mínima (com 0 acerto)</label>
+          <input type="number" step="0.01" data-f="notaMin" value="${s.notaMin}"></div>
+        <div class="campo" style="flex:1 1 220px"><div class="pill" style="display:block;padding:8px">
+          0 acerto → ${fmt(s.notaMin)} · todos os acertos → ${fmt(s.max)}. O que está no meio é proporcional ao peso das questões.</div></div>
+      </div>
+      ${qs.length?`
+      <details class="q" ${ctx.abrirQ===s.id?'open':''}>
+        <summary>Pesos e gabarito por questão</summary>
+        <div class="qgrade">${qs.map((q,j)=>`
+          <div class="qitem">
+            <div class="qn">Questão ${j+1}</div>
+            <div class="qbox">
+              <input type="number" step="0.1" min="0" data-qpeso="${q.id}" value="${q.peso}" title="Peso">
+              <select data-qgab="${q.id}" title="Item correto" style="padding:3px">
+                <option value="">—</option>
+                ${LETRAS.map(l=>`<option ${q.gab===l?'selected':''}>${l}</option>`).join('')}
+              </select>
+            </div>
+          </div>`).join('')}</div>
+        <div class="acoes" style="margin-top:10px">
+          <button class="btn min sec" data-pesos1="${s.id}">Igualar todos os pesos em 1</button>
+        </div>
+      </details>`:''}
+    `:''}
+    <details class="q" ${ctx.abrirAnexo===s.id?'open':''}>
+      <summary>Imagem da atividade e gabarito</summary>
+      <div class="grade" style="margin-top:10px">
+        <div>
+          <label>Imagem da atividade — o aluno vê ao consultar a nota</label>
+          <div class="colar" data-img="atividade::${s.id}"></div>
+        </div>
+        <div>
+          <label>Imagem do gabarito</label>
+          <div class="colar" data-img="gabarito::${s.id}"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px"><label>Gabarito escrito</label>
+        <textarea data-f="gabTexto" placeholder="Resposta esperada, critérios de correção, comentários…">${esc(s.gabTexto)}</textarea></div>
+    </details>
+  </div>`;
+}
+
+function ligarEditorAval(a){
+  const g=(sel)=>$(sel);
+  ['nome','max','desc'].forEach(()=>{});
+  g('#av_nome').oninput=e=>{ a.nome=e.target.value; salvar(); };
+  g('#av_max').onchange=e=>{ a.max=num(e.target.value,0); salvar(); render(); };
+  g('#av_desc').oninput=e=>{ a.descricao=e.target.value; salvar(); };
+  $$('[data-modosub]').forEach(b=>b.onclick=()=>{ a.modoSub=b.dataset.modosub; salvar(); render(); });
+  $('#addSub').onclick=()=>{ a.subs.push(novaSub('Parte '+(a.subs.length+1))); ajustarAplicacoes(a); salvar(); render(); };
+  $$('[data-subturma]').forEach(b=>b.onclick=()=>{
+    const [sid,tid]=b.dataset.subturma.split('::');
+    const sub=a.subs.find(x=>x.id===sid); if(!sub) return;
+    if(!Array.isArray(sub.turmas)) sub.turmas = turmasDoProf((profAtual()||{}).id, discAtiva()).map(t=>t.id);
+    const dentro = sub.turmas.includes(tid);
+    if(dentro){
+      const A=apl(tid,a.id);
+      const comNota = A ? Object.values(A.notas||{}).filter(n=>n[sid]!==undefined).length : 0;
+      if(comNota && !confirm(`${comNota} aluno(s) já têm pontuação nesta parte em ${rotuloTurma(DB.turmas.find(t=>t.id===tid))}. Retirar apaga esses lançamentos. Continuar?`)) return;
+      if(comNota && A) Object.values(A.notas).forEach(n=>{ delete n[sid]; });
+      sub.turmas = sub.turmas.filter(x=>x!==tid);
+    }else{
+      sub.turmas = [...sub.turmas, tid];
+    }
+    ajustarAplicacoes(a); salvar(); render();
+  });
+
+  $$('.subcard').forEach(card=>{
+    const s=a.subs.find(x=>x.id===card.dataset.sub); if(!s) return;
+    $$('[data-f]',card).forEach(inp=>{
+      const f=inp.dataset.f, numerico = (f==='max'||f==='notaMin');
+      const aplica = e=>{ s[f]= numerico ? num(e.target.value,0) : e.target.value; salvar(); };
+      if(numerico) inp.onchange=e=>{ aplica(e); render(); };
+      else inp.oninput=aplica;
+    });
+    $$('[data-modo]',card).forEach(b=>b.onclick=()=>{
+      s.modo=b.dataset.modo;
+      if(s.modo==='acertos' && !(s.questoes||[]).length) s.questoes=[];
+      salvar(); render();
+    });
+    const nq=$('[data-nq]',card);
+    if(nq) nq.onchange=()=>{
+      const n=Math.max(0,Math.round(num(nq.value,0)));
+      const q=s.questoes||[];
+      while(q.length<n) q.push({id:uid(), peso:1, gab:''});
+      q.length=n; s.questoes=q; ctx.abrirQ=s.id; salvar(); render();
+    };
+    $$('[data-qpeso]',card).forEach(inp=>inp.oninput=()=>{
+      const q=s.questoes.find(x=>x.id===inp.dataset.qpeso); q.peso=num(inp.value,1); salvar();
+    });
+    $$('[data-qgab]',card).forEach(sel=>sel.onchange=()=>{
+      const q=s.questoes.find(x=>x.id===sel.dataset.qgab); q.gab=sel.value; salvar();
+    });
+    const p1=$('[data-pesos1]',card);
+    if(p1) p1.onclick=()=>{ s.questoes.forEach(q=>q.peso=1); ctx.abrirQ=s.id; salvar(); render(); };
+    $$('[data-subup]',card).forEach(b=>b.onclick=()=>{
+      const i=a.subs.indexOf(s); if(i>0){ a.subs.splice(i-1,0,a.subs.splice(i,1)[0]); salvar(); render(); }});
+    $$('[data-subdown]',card).forEach(b=>b.onclick=()=>{
+      const i=a.subs.indexOf(s); if(i<a.subs.length-1){ a.subs.splice(i+1,0,a.subs.splice(i,1)[0]); salvar(); render(); }});
+    $$('[data-subdel]',card).forEach(b=>b.onclick=()=>{
+      if(!confirm(`Excluir a parte "${s.nome}" e suas pontuações?`)) return;
+      a.subs=a.subs.filter(x=>x.id!==s.id); ajustarAplicacoes(a); salvar(); render(); });
+    $$('[data-img]',card).forEach(z=>{
+      const [tipo,sid]=z.dataset.img.split('::');
+      const campo = tipo==='atividade'?'imagem':'gabImagem';
+      zonaColar(z, s[campo], d=>{ s[campo]=d; ctx.abrirAnexo=sid; salvar(); });
+    });
+  });
+}
+</script>
+<script>
+/* =======================================================================
+   04 · LANÇAR NOTAS
+   ======================================================================= */
+const JUSTIFICATIVAS = ['Sem visto','Incompleta','Fora do prazo','Resposta mal elaborada','Resposta incorreta','Justificado'];
+
+function seletorTurmaAval(){
+  const eu = profAtual() || {};
+  const turmas = turmasDoProf(eu.id, discAtiva());
+  const avs = avaliacoesDoProf(eu.id, discAtiva());
+  return `
+  <div class="linha" style="margin-bottom:4px">
+    <div class="campo"><label>Turma</label><select id="selTurma">
+      <option value="">Selecione…</option>
+      ${turmas.map(t=>`<option value="${t.id}" ${ctx.turma===t.id?'selected':''}>${esc(rotuloTurma(t))}</option>`).join('')}
+    </select></div>
+    <div class="campo"><label>Avaliação</label><select id="selAval">
+      <option value="">Selecione…</option>
+      ${avs.map(a=>`<option value="${a.id}" ${ctx.aval===a.id?'selected':''}>${esc(a.nome)}</option>`).join('')}
+    </select></div>
+  </div>
+  ${!turmas.length?'<div class="aviso">Nenhuma turma liberada para você ainda. Peça acesso em “Minhas turmas”.</div>':''}`;
+}
+
+function vLancamento(alvo){
+  const eu = profAtual() || {};
+  const t=DB.turmas.find(x=>x.id===ctx.turma && temAcesso(eu.id,x.id,discAtiva()));
+  const a=DB.avaliacoes.find(x=>x.id===ctx.aval && x.profId===eu.id && avalDaDisc(x,discAtiva()));
+  let corpo='', temTabela=false;
+  if(!t||!a){
+    corpo = `<div class="vazio"><strong>Escolha a turma e a avaliação</strong>A tabela de lançamento aparece aqui.</div>`;
+  }else if(!t.alunos.length){
+    corpo = `<div class="vazio"><strong>${esc(rotuloTurma(t))} está sem alunos</strong>Cadastre a lista em “Minhas turmas”.</div>`;
+  }else if(!(a.subs||[]).length){
+    corpo = `<div class="vazio"><strong>${esc(a.nome)} não tem partes</strong>Crie ao menos uma sub-avaliação em “Avaliações”.</div>`;
+  }else if(!subsDaTurma(a,t.id).length){
+    corpo = `<div class="vazio"><strong>Nenhuma parte de “${esc(a.nome)}” foi aplicada em ${esc(rotuloTurma(t))}</strong>
+      Em “Avaliações”, marque esta turma nas partes que valem para ela.</div>`;
+  }else{
+    apl(t.id,a.id,true);
+    corpo = tabelaLancamento(t,a);
+    temTabela = true;
+  }
+  alvo.innerHTML = `
+  <div class="cabeca">
+    <div><h2>Lançar notas</h2><div class="sub">Lançamento em tabela, com cálculo automático a cada digitação.</div></div>
+  </div>
+  <div class="painel">${seletorTurmaAval()}</div>
+  ${corpo}`;
+
+  $('#selTurma').onchange=e=>{ ctx.turma=e.target.value; render(); };
+  $('#selAval').onchange=e=>{ ctx.aval=e.target.value; render(); };
+  if(temTabela) ligarTabela(t,a);
+}
+
+function tabelaLancamento(t,a){
+  const A=apl(t.id,a.id);
+  const subs=subsDaTurma(a,t.id);
+  const alunos=[...t.alunos].sort(ordAlfa);
+  const ordem = ctx.ordem||'alfa';
+  let linhas = alunos.map((al,i)=>({al, pos:i+1, nota:notaAval(a,t.id,al.id)}));
+  if(ordem==='maior') linhas=[...linhas].sort((x,y)=>(y.nota??-1)-(x.nota??-1));
+  if(ordem==='menor') linhas=[...linhas].sort((x,y)=>(x.nota??1e9)-(y.nota??1e9));
+  const lancadas = linhas.filter(l=>l.nota!==null);
+  const media = lancadas.length? lancadas.reduce((s,l)=>s+l.nota,0)/lancadas.length : null;
+
+  return `
+  <div class="faixa-visib ${A.visivel?'on':''}">
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      <div class="carimbo ${A.visivel?'liberado':''}">
+        ${A.visivel?'Notas liberadas':'Notas fechadas'}
+        <small>${A.visivel? (A.liberadoEm?dataHora(A.liberadoEm):'visíveis para a turma') : 'só o professor vê'}</small>
+      </div>
+      <div class="txt">
+        <strong>${A.visivel?'A turma já está vendo estas notas':'A turma ainda não vê estas notas'}</strong>
+        <span>${esc(a.nome)} · ${esc(rotuloTurma(t))} · vale ${fmt(a.max)}${media!==null?` · média da turma ${fmt(media)}`:''}</span>
+      </div>
+    </div>
+    <button class="btn ${A.visivel?'perigo':''}" id="togVis">${A.visivel?'Fechar para a turma':'Liberar para a turma'}</button>
+  </div>
+
+  <div class="painel">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div>
+        <h3>${esc(a.nome)}</h3>
+        <p class="desc">${subs.length} parte(s) nesta turma · ${a.modoSub==='media'?'nota = média das partes lançadas, na escala de '+fmt(a.max):'nota = soma das partes'}</p>
+      </div>
+      <div class="escolhas" style="align-items:center">
+        <button data-ord="alfa" class="${ordem==='alfa'?'on':''}">Ordem alfabética</button>
+        <button data-ord="maior" class="${ordem==='maior'?'on':''}">Maior nota</button>
+        <button data-ord="menor" class="${ordem==='menor'?'on':''}">Menor nota</button>
+      </div>
+    </div>
+    <div class="rolagem"><table class="pauta">
+      <thead><tr>
+        <th class="ord">Nº</th><th>Aluno</th>
+        ${subs.map(s=>{const dt=s.data;return `<th>${esc(s.nome||'—')}<br><span style="font-weight:400;text-transform:none;letter-spacing:0">${s.modo==='acertos'?`acertos de ${(s.questoes||[]).length} · vale ${fmt(s.max)}`:`vale ${fmt(s.max)}`}${dt?` · ${dataBR(dt)}`:''}</span></th>`;}).join('')}
+        <th style="text-align:right">Nota da avaliação</th>
+      </tr></thead>
+      <tbody>${linhas.map(l=>`
+        <tr data-aluno="${l.al.id}">
+          <td class="ord">${l.pos}</td>
+          <td class="nome">${esc(l.al.nome)}</td>
+          ${subs.map(s=>celula(t,a,s,l.al)).join('')}
+          <td class="final">${l.nota===null?'<span style="color:var(--tinta-fraca);font-weight:400">—</span>':fmt(l.nota)}</td>
+        </tr>`).join('')}</tbody>
+    </table></div>
+    <div class="aviso" style="margin-top:14px">
+      <strong>MÁX · MÉD · MÍN</strong> preenchem a pontuação cheia, a metade e o piso com um toque.
+      <strong>F</strong> marca falta e zera a pontuação. <strong>!</strong> abre a justificativa daquela nota — opcional, e o aluno vê junto com a nota.
+    </div>
+  </div>`;
+}
+
+/* pontuação cheia, metade e piso de uma parte */
+function atalhoValor(s, qual){
+  if(s.modo==='acertos'){
+    const q=(s.questoes||[]).length;
+    if(!q) return null;
+    return qual==='max'? q : qual==='min'? 0 : Math.round(q/2);
+  }
+  const mx=num(s.max,0);
+  return qual==='max'? mx : qual==='min'? 0 : Math.round((mx/2)*100)/100;
+}
+
+function celula(t,a,s,al){
+  const e = lanc(t.id,a.id,al.id,s.id) || {};
+  const faltou = !!e.faltou;
+  const valor = s.modo==='acertos' ? (e.nAcertos??'') : (e.pontos??'');
+  const n = notaSub(s,e);
+  const temJ = !!(e.just&&e.just.length);
+  return `<td class="${faltou?'faltou':''}">
+    <div style="display:flex;align-items:center;gap:4px">
+      <input type="number" step="0.01" min="0" data-cel="${s.id}" value="${valor}" ${faltou?'disabled':''}
+        placeholder="${s.modo==='acertos'?'ac.':'pts'}" title="${s.modo==='acertos'?'Quantidade de acertos':'Pontuação obtida'}">
+      <button class="btn min ${faltou?'perigo':'sec'}" data-falta="${s.id}" title="Faltou">F</button>
+      <button class="marca-just" data-just="${s.id}" title="${temJ?esc(e.just):'Justificativa'}" style="color:${temJ?'var(--ambar)':'var(--pauta)'}">!</button>
+      ${s.modo==='acertos'&&(s.questoes||[]).length?`<button class="btn min sec" data-quest="${s.id}" title="Marcar questão por questão">Q</button>`:''}
+    </div>
+    ${atalhoValor(s,'max')!==null?`<div class="atalhos">
+      <button class="btn mini sec" data-atalho="${s.id}::max" title="${s.modo==='acertos'?`Todos os ${(s.questoes||[]).length} acertos`:`Pontuação cheia (${fmt(s.max)})`}">MÁX</button>
+      <button class="btn mini sec" data-atalho="${s.id}::med" title="Metade da pontuação">MÉD</button>
+      <button class="btn mini sec" data-atalho="${s.id}::min" title="${s.modo==='acertos'?'Nenhum acerto':'Zero'}">MÍN</button>
+    </div>`:''}
+    ${s.modo==='acertos'&&n!==null?`<div class="pill" style="margin-top:2px">${fmt(n)} pts</div>`:''}
+  </td>`;
+}
+
+function ligarTabela(t,a){
+  const A=apl(t.id,a.id);
+  const subs=subsDaTurma(a,t.id);
+  $('#togVis').onclick=()=>{
+    A.visivel=!A.visivel; A.liberadoEm = A.visivel?Date.now():null;
+    registrar(t.id,'','','', A.visivel?'fechada':'liberada', A.visivel?'liberada':'fechada', 'Visibilidade de '+a.nome);
+    salvar(); render(); toast(A.visivel?'Notas liberadas para a turma.':'Notas fechadas.');
+  };
+  $$('[data-ord]').forEach(b=>b.onclick=()=>{ ctx.ordem=b.dataset.ord; render(); });
+
+  $$('tr[data-aluno]').forEach(tr=>{
+    const alunoId=tr.dataset.aluno;
+    $$('[data-cel]',tr).forEach(inp=>inp.onchange=()=>{
+      const s=subs.find(x=>x.id===inp.dataset.cel);
+      const e=lanc(t.id,a.id,alunoId,s.id,true);
+      const antes=notaSub(s,e);
+      if(s.modo==='acertos'){
+        const v=inp.value===''?null:Math.min((s.questoes||[]).length||1e9, Math.max(0,num(inp.value,0)));
+        e.nAcertos=v; delete e.q;
+        if(v!==null) inp.value=v;
+      }else{
+        e.pontos = inp.value===''?null:Math.min(num(s.max,1e9), Math.max(0,num(inp.value,0)));
+        if(e.pontos!==null) inp.value=e.pontos;
+      }
+      registrar(t.id,alunoId,a.id,s.id, antes===null?'—':fmt(antes), fmt(notaSub(s,e)));
+      salvar(); atualizarLinha(tr,t,a,alunoId);
+    });
+    $$('[data-cel]',tr).forEach(inp=>inp.onkeydown=ev=>{
+      if(ev.key!=='Enter') return;
+      ev.preventDefault(); inp.blur();
+      const prox=tr.nextElementSibling;
+      if(prox){ const alvo=$(`[data-cel="${inp.dataset.cel}"]`,prox); if(alvo){ alvo.focus(); alvo.select(); } }
+    });
+    $$('[data-falta]',tr).forEach(b=>b.onclick=()=>{
+      const s=subs.find(x=>x.id===b.dataset.falta);
+      const e=lanc(t.id,a.id,alunoId,s.id,true);
+      const antes=notaSub(s,e); e.faltou=!e.faltou;
+      registrar(t.id,alunoId,a.id,s.id, antes===null?'—':fmt(antes), e.faltou?'faltou (0)':fmt(notaSub(s,e)));
+      salvar(); render();
+    });
+    $$('[data-atalho]',tr).forEach(b=>b.onclick=()=>{
+      const [sid,qual]=b.dataset.atalho.split('::');
+      const s=subs.find(x=>x.id===sid); if(!s) return;
+      const e=lanc(t.id,a.id,alunoId,s.id,true);
+      const antes=notaSub(s,e);
+      const v=atalhoValor(s,qual);
+      e.faltou=false;
+      if(s.modo==='acertos'){ e.nAcertos=v; delete e.q; } else { e.pontos=v; }
+      registrar(t.id,alunoId,a.id,s.id, antes===null?'—':fmt(antes), fmt(notaSub(s,e)));
+      salvar();
+      const campo=$(`[data-cel="${sid}"]`,tr);
+      if(campo){ campo.disabled=false; campo.value=v; }
+      atualizarLinha(tr,t,a,alunoId);
+    });
+    $$('[data-just]',tr).forEach(b=>b.onclick=()=>modalJustificativa(t,a,subs.find(x=>x.id===b.dataset.just),alunoId));
+    $$('[data-quest]',tr).forEach(b=>b.onclick=()=>modalQuestoes(t,a,subs.find(x=>x.id===b.dataset.quest),alunoId));
+  });
+}
+
+/* recalcula só a linha alterada — mantém o foco para digitação em sequência */
+function atualizarLinha(tr,t,a,alunoId){
+  subsDaTurma(a,t.id).forEach(s=>{
+    const cel=$(`[data-cel="${s.id}"]`,tr); if(!cel) return;
+    const td=cel.closest('td'); const e=lanc(t.id,a.id,alunoId,s.id)||{};
+    const n=notaSub(s,e);
+    td.classList.toggle('faltou', !!e.faltou);
+    const pill=$('.pill',td);
+    if(s.modo==='acertos'){
+      if(n!==null&&!pill){ td.insertAdjacentHTML('beforeend',`<div class="pill">${fmt(n)} pts</div>`); }
+      else if(n!==null){ pill.textContent=fmt(n)+' pts'; }
+      else if(pill){ pill.remove(); }
+    }
+    const bj=$('[data-just]',td);
+    if(bj) bj.style.color = (e.just&&e.just.length)?'var(--ambar)':'var(--pauta)';
+  });
+  const total=notaAval(a,t.id,alunoId);
+  const tdFinal=tr.lastElementChild;
+  tdFinal.innerHTML = total===null?'<span style="color:var(--tinta-fraca);font-weight:400">—</span>':fmt(total);
+}
+
+function modalJustificativa(t,a,s,alunoId){
+  const e=lanc(t.id,a.id,alunoId,s.id,true);
+  abrirModal(`
+    <h3>Justificativa</h3>
+    <p style="color:var(--tinta-fraca);font-size:13.5px">${esc(nomeAluno(t.id,alunoId))} · ${esc(s.nome)} · ${esc(a.nome)}</p>
+    <div class="escolhas" style="margin:12px 0">
+      ${JUSTIFICATIVAS.map(j=>`<button data-j="${esc(j)}" class="${e.just===j?'on':''}">${j}</button>`).join('')}
+    </div>
+    <label>Justificativa personalizada</label>
+    <textarea id="jTxt" placeholder="Opcional — o aluno lê este texto junto da nota.">${esc(e.just&&!JUSTIFICATIVAS.includes(e.just)?e.just:'')}</textarea>
+    <div class="acoes" style="margin-top:12px">
+      <button class="btn" id="jOk">Salvar justificativa</button>
+      <button class="btn sec" id="jLimpar">Remover</button>
+      <button class="btn sec" data-fechar>Cancelar</button>
+    </div>`);
+  let escolha = JUSTIFICATIVAS.includes(e.just)?e.just:'';
+  $$('[data-j]').forEach(b=>b.onclick=()=>{
+    escolha = escolha===b.dataset.j?'':b.dataset.j;
+    $$('[data-j]').forEach(x=>x.classList.toggle('on', x.dataset.j===escolha));
+  });
+  $('#jOk').onclick=()=>{
+    const livre=$('#jTxt').value.trim();
+    e.just = livre || escolha || '';
+    registrar(t.id,alunoId,a.id,s.id,'justificativa', e.just||'(removida)');
+    salvar(); fecharModal();
+    const tr=$(`tr[data-aluno="${alunoId}"]`); if(tr) atualizarLinha(tr,t,a,alunoId);
+    toast('Justificativa salva.');
+  };
+  $('#jLimpar').onclick=()=>{ e.just=''; salvar(); fecharModal();
+    const tr=$(`tr[data-aluno="${alunoId}"]`); if(tr) atualizarLinha(tr,t,a,alunoId); };
+}
+
+function modalQuestoes(t,a,s,alunoId){
+  const e=lanc(t.id,a.id,alunoId,s.id,true);
+  const qs=s.questoes||[];
+  if(!Array.isArray(e.q)){
+    const n=num(e.nAcertos,0);
+    e.q = qs.map((_,i)=> i<n);
+  }
+  const pinta=()=>{
+    const obt=qs.reduce((x,q,i)=> x + (e.q[i]?num(q.peso,1):0),0);
+    const pt=pesoTotal(s)||1;
+    const nota=num(s.notaMin,0) + (obt/pt)*(num(s.max,0)-num(s.notaMin,0));
+    $('#qres').innerHTML = `${e.q.filter(Boolean).length} de ${qs.length} questões · peso ${fmt(obt)} de ${fmt(pt)} · <strong>${fmt(nota)} pontos</strong>`;
+  };
+  abrirModal(`
+    <h3>Marcar acertos</h3>
+    <p style="color:var(--tinta-fraca);font-size:13.5px">${esc(nomeAluno(t.id,alunoId))} · ${esc(s.nome)}. Clique nas questões que o aluno acertou.</p>
+    <div class="qgrade" style="margin:12px 0">
+      ${qs.map((q,i)=>`<button class="qitem" data-q="${i}" style="cursor:pointer;text-align:left;width:100%">
+        <div class="qn">Questão ${i+1}${q.gab?' · gab. '+q.gab:''}</div>
+        <div style="font-weight:600" data-lab="${i}">${e.q[i]?'Acertou':'Errou'} · peso ${fmt(q.peso,1)}</div>
+      </button>`).join('')}
+    </div>
+    <div class="aviso bom" id="qres"></div>
+    <div class="acoes" style="margin-top:12px">
+      <button class="btn" id="qOk">Salvar</button>
+      <button class="btn sec" id="qTodas">Marcar todas</button>
+      <button class="btn sec" id="qNenhuma">Desmarcar todas</button>
+      <button class="btn sec" data-fechar>Cancelar</button>
+    </div>`);
+  const atualiza=()=>{ qs.forEach((q,i)=>{ const l=$(`[data-lab="${i}"]`); l.textContent=(e.q[i]?'Acertou':'Errou')+' · peso '+fmt(q.peso,1);
+    l.parentElement.style.background = e.q[i]?'#EAF3EE':'#fff'; }); pinta(); };
+  $$('[data-q]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.q; e.q[i]=!e.q[i]; atualiza(); });
+  $('#qTodas').onclick=()=>{ e.q=qs.map(()=>true); atualiza(); };
+  $('#qNenhuma').onclick=()=>{ e.q=qs.map(()=>false); atualiza(); };
+  $('#qOk').onclick=()=>{
+    e.nAcertos=e.q.filter(Boolean).length;
+    registrar(t.id,alunoId,a.id,s.id,'questões', fmt(notaSub(s,e)));
+    salvar(); fecharModal(); render(); toast('Acertos salvos.'); ctx.foco=null;
+  };
+  atualiza();
+}
+
+/* =======================================================================
+   05 · NOTA FINAL
+   ======================================================================= */
+function vFechamento(alvo){
+  const eu = profAtual() || {};
+  const turmas = turmasDoProf(eu.id, discAtiva());
+  const t = turmas.find(x=>x.id===ctx.turma);
+  let corpo='';
+  if(!t){ corpo=`<div class="vazio"><strong>Escolha uma turma</strong>O fechamento é definido turma a turma.</div>`; }
+  else{
+    const c=calcDe(t.id, eu.id, discAtiva()), avs=avaliacoesDaTurma(t.id, eu.id, discAtiva());
+    const somaPesos = avs.reduce((s,a)=>s+num((c.pesos||{})[a.id],0),0);
+    const alunos=[...t.alunos].sort(ordAlfa);
+    let linhas=alunos.map((al,i)=>({al,pos:i+1,r:notaFinal(t,al.id,eu.id,discAtiva())}));
+    const ordem=ctx.ordemF||'alfa';
+    if(ordem==='maior') linhas=[...linhas].sort((x,y)=>(y.r.nota??-1)-(x.r.nota??-1));
+    if(ordem==='menor') linhas=[...linhas].sort((x,y)=>(x.r.nota??1e9)-(y.r.nota??1e9));
+
+    corpo=`
+    <div class="painel">
+      <h3>Como a nota final é calculada</h3>
+      <p class="desc">Vale para ${esc(rotuloTurma(t))} em ${esc(discAtiva()||'sua disciplina')}.</p>
+      <div class="escolhas" style="margin-bottom:12px">
+        <button data-modof="media" class="${c.modo==='media'?'on':''}">Média das avaliações</button>
+        <button data-modof="pesos" class="${c.modo==='pesos'?'on':''}">Valor fixo por avaliação</button>
+      </div>
+      <div class="linha" style="margin-bottom:12px">
+        <div class="campo" style="flex:0 1 160px"><label>Nota final máxima</label><input type="number" step="0.01" id="maxFinal" value="${c.maxFinal}"></div>
+      </div>
+      ${c.modo==='media'
+        ? `<div class="aviso">Cada avaliação é convertida em porcentagem do seu próprio valor e todas pesam igual, independentemente de valerem 10, 20 ou 4 pontos. A média das porcentagens é multiplicada por ${fmt(c.maxFinal)}.</div>`
+        : `<div class="aviso ${Math.abs(somaPesos-num(c.maxFinal,10))<0.001?'bom':'erro'}">Os valores somam ${fmt(somaPesos)} de ${fmt(c.maxFinal)}. Cada avaliação entrega no máximo o valor definido abaixo.</div>
+          ${avs.length?`<div class="grade">${avs.map(a=>`
+            <div><label>${esc(a.nome)} — vale até</label><input type="number" step="0.01" data-peso="${a.id}" value="${num((c.pesos||{})[a.id],0)}"></div>`).join('')}</div>`:''}`}
+      ${!avs.length?`<div class="vazio" style="margin-top:12px"><strong>Nenhuma avaliação sua aplicada nesta turma</strong>Aplique avaliações em “Lançar notas”.</div>`:''}
+    </div>
+    ${avs.length?`
+    <div class="painel">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+        <div><h3>Quadro de notas finais</h3><p class="desc">Só entram no cálculo as avaliações com nota lançada.</p></div>
+        <div class="escolhas">
+          <button data-ordf="alfa" class="${ordem==='alfa'?'on':''}">Ordem alfabética</button>
+          <button data-ordf="maior" class="${ordem==='maior'?'on':''}">Maior nota</button>
+          <button data-ordf="menor" class="${ordem==='menor'?'on':''}">Menor nota</button>
+        </div>
+      </div>
+      <div class="rolagem"><table class="pauta">
+        <thead><tr><th class="ord">Nº</th><th>Aluno</th>
+          ${avs.map(a=>`<th style="text-align:right">${esc(a.nome)}<br><span style="font-weight:400;text-transform:none">de ${fmt(a.max)}</span></th>`).join('')}
+          <th style="text-align:right">Nota final</th></tr></thead>
+        <tbody>${linhas.map(l=>`<tr>
+          <td class="ord">${l.pos}</td><td class="nome">${esc(l.al.nome)}</td>
+          ${avs.map(a=>{const n=notaAval(a,t.id,l.al.id);return `<td class="num" style="text-align:right">${n===null?'—':fmt(n)}</td>`;}).join('')}
+          <td class="final">${l.r.nota===null?'—':fmt(l.r.nota)}</td></tr>`).join('')}</tbody>
+      </table></div>
+    </div>`:''}`;
+  }
+  alvo.innerHTML=`
+  <div class="cabeca"><div><h2>Nota final</h2><div class="sub">O peso de cada avaliação no resultado do período.</div></div></div>
+  <div class="painel"><div class="linha"><div class="campo"><label>Turma</label><select id="selTurmaF">
+    <option value="">Selecione…</option>
+    ${turmas.map(x=>`<option value="${x.id}" ${ctx.turma===x.id?'selected':''}>${esc(rotuloTurma(x))}</option>`).join('')}
+  </select></div></div></div>
+  ${corpo}`;
+  $('#selTurmaF').onchange=e=>{ ctx.turma=e.target.value; render(); };
+  if(!t) return;
+  const cc = calcDe(t.id, eu.id, discAtiva());
+  $$('[data-modof]').forEach(b=>b.onclick=()=>{ cc.modo=b.dataset.modof; salvar(); render(); });
+  $('#maxFinal').onchange=e=>{ cc.maxFinal=num(e.target.value,10); salvar(); render(); };
+  $$('[data-peso]').forEach(inp=>inp.onchange=()=>{
+    cc.pesos=cc.pesos||{}; cc.pesos[inp.dataset.peso]=num(inp.value,0); salvar(); render(); });
+  $$('[data-ordf]').forEach(b=>b.onclick=()=>{ ctx.ordemF=b.dataset.ordf; render(); });
+}
+</script>
+<script>
+/* =======================================================================
+   06 · HISTÓRICO
+   ======================================================================= */
+function vHistorico(alvo){
+  const turmas = turmasDoProf((profAtual()||{}).id);   // histórico cobre todas as disciplinas
+  const t=DB.turmas.find(x=>x.id===ctx.hTurma);
+  let itens=DB.historico;
+  if(ctx.hTurma) itens=itens.filter(h=>h.turma===ctx.hTurma);
+  if(ctx.hAluno) itens=itens.filter(h=>h.aluno===ctx.hAluno);
+  const mostra=itens.slice(0,400);
+  alvo.innerHTML=`
+  <div class="cabeca"><div><h2>Histórico</h2><div class="sub">Dia e hora de cada alteração de nota, por turma e por aluno.</div></div>
+    <button class="btn sec" id="limparHist">Limpar histórico</button></div>
+  <div class="painel">
+    <div class="linha">
+      <div class="campo"><label>Turma</label><select id="hT"><option value="">Todas</option>
+        ${turmas.map(x=>`<option value="${x.id}" ${ctx.hTurma===x.id?'selected':''}>${esc(rotuloTurma(x))}</option>`).join('')}</select></div>
+      <div class="campo"><label>Aluno</label><select id="hA"><option value="">Todos</option>
+        ${t?[...t.alunos].sort(ordAlfa).map(a=>`<option value="${a.id}" ${ctx.hAluno===a.id?'selected':''}>${esc(a.nome)}</option>`).join(''):''}</select></div>
+    </div>
+  </div>
+  <div class="painel">
+    ${mostra.length?`<div class="rolagem"><table class="pauta">
+      <thead><tr><th>Quando</th><th>Turma</th><th>Aluno</th><th>Avaliação</th><th>Parte</th><th>De</th><th>Para</th><th>Por</th></tr></thead>
+      <tbody>${mostra.map(h=>`<tr>
+        <td class="num" style="white-space:nowrap">${dataHora(h.ts)}</td>
+        <td>${esc(nomeTurma(h.turma))}</td>
+        <td>${h.aluno?esc(nomeAluno(h.turma,h.aluno)):'<span style="color:var(--tinta-fraca)">—</span>'}</td>
+        <td>${h.aval?esc(nomeAval(h.aval)):esc(h.obs||'—')}</td>
+        <td>${h.sub?esc(nomeSub(h.aval,h.sub)):'—'}</td>
+        <td class="num">${esc(h.antes)}</td><td class="num"><strong>${esc(h.depois)}</strong></td>
+        <td style="font-size:12.5px;color:var(--tinta-fraca)">${esc(h.autor||'—')}</td></tr>`).join('')}</tbody>
+    </table></div>${itens.length>400?`<p class="desc" style="margin-top:10px">Mostrando os 400 registros mais recentes de ${itens.length}.</p>`:''}`
+    :`<div class="vazio"><strong>Nada registrado ainda</strong>Cada nota alterada entra aqui automaticamente.</div>`}
+  </div>`;
+  $('#hT').onchange=e=>{ ctx.hTurma=e.target.value; ctx.hAluno=''; render(); };
+  $('#hA').onchange=e=>{ ctx.hAluno=e.target.value; render(); };
+  $('#limparHist').onclick=()=>{ if(confirm('Apagar todo o histórico de alterações?')){ DB.historico=[]; salvar(); render(); } };
+}
+
+/* =======================================================================
+   07 · IMPRESSÃO
+   ======================================================================= */
+function vImpressao(alvo){
+  const eu = profAtual() || {};
+  const turmas = turmasDoProf(eu.id, discAtiva());
+  const t = turmas.find(x=>x.id===ctx.turma);
+  const avs = t?avaliacoesDaTurma(t.id, eu.id, discAtiva()):[];
+  ctx.imp = ctx.imp || {};
+  const marcada = id => ctx.imp[id]!==false;
+  alvo.innerHTML=`
+  <div class="cabeca naoimprime"><div><h2>Impressão</h2><div class="sub">Escolha a turma e quais avaliações entram na relação de notas.</div></div></div>
+  <div class="painel naoimprime">
+    <div class="linha" style="margin-bottom:12px">
+      <div class="campo"><label>Turma</label><select id="selTurmaI"><option value="">Selecione…</option>
+        ${turmas.map(x=>`<option value="${x.id}" ${ctx.turma===x.id?'selected':''}>${esc(rotuloTurma(x))}</option>`).join('')}</select></div>
+    </div>
+    ${t?(avs.length?`
+      <label>Avaliações na relação</label>
+      <div class="grade">${avs.map(a=>`<label class="item" style="cursor:pointer;font-size:14px;text-transform:none;letter-spacing:0;color:var(--tinta)">
+        <span>${esc(a.nome)} <span class="pill">de ${fmt(a.max)}</span></span>
+        <input type="checkbox" data-imp="${a.id}" ${marcada(a.id)?'checked':''} style="width:auto"></label>`).join('')}</div>
+      <div class="grade" style="margin-top:12px">
+        <label class="item" style="cursor:pointer;text-transform:none;letter-spacing:0;color:var(--tinta)"><span>Detalhar as partes de cada avaliação</span>
+          <input type="checkbox" id="impSubs" ${ctx.impSubs?'checked':''} style="width:auto"></label>
+        <label class="item" style="cursor:pointer;text-transform:none;letter-spacing:0;color:var(--tinta)"><span>Incluir coluna de nota final</span>
+          <input type="checkbox" id="impFinal" ${ctx.impFinal!==false?'checked':''} style="width:auto"></label>
+        <label class="item" style="cursor:pointer;text-transform:none;letter-spacing:0;color:var(--tinta)"><span>Deixar coluna em branco para assinatura</span>
+          <input type="checkbox" id="impAss" ${ctx.impAss?'checked':''} style="width:auto"></label>
+      </div>
+      <div class="acoes" style="margin-top:14px"><button class="btn" id="btnImprimir">Gerar e imprimir</button></div>`
+    :`<div class="vazio"><strong>Nenhuma avaliação sua aplicada em ${esc(rotuloTurma(t))}</strong>Aplique avaliações em “Lançar notas”.</div>`)
+    :`<div class="vazio"><strong>Escolha a turma</strong>A relação sai com o cabeçalho da capa da disciplina.</div>`}
+  </div>
+  <div id="impressao">${t?montarImpressao(t):''}</div>`;
+
+  $('#selTurmaI').onchange=e=>{ ctx.turma=e.target.value; render(); };
+  $$('[data-imp]').forEach(c=>c.onchange=()=>{ ctx.imp[c.dataset.imp]=c.checked; render(); });
+  if($('#impSubs')) $('#impSubs').onchange=e=>{ ctx.impSubs=e.target.checked; render(); };
+  if($('#impFinal')) $('#impFinal').onchange=e=>{ ctx.impFinal=e.target.checked; render(); };
+  if($('#impAss')) $('#impAss').onchange=e=>{ ctx.impAss=e.target.checked; render(); };
+  if($('#btnImprimir')) $('#btnImprimir').onclick=()=>window.print();
+}
+
+function montarImpressao(t){
+  const c=DB.capa, eu=profAtual()||{};
+  const avs=avaliacoesDaTurma(t.id, eu.id, discAtiva()).filter(a=>ctx.imp[a.id]!==false);
+  const alunos=[...t.alunos].sort(ordAlfa);
+  const cols=[];
+  avs.forEach(a=>{
+    if(ctx.impSubs) subsDaTurma(a,t.id).forEach(s=>{
+      const dt=s.data;
+      cols.push({tipo:'sub', a, s, rot:`${a.nome} · ${s.nome||'—'}${dt?' ('+dataBR(dt)+')':''}`, max:s.max});
+    });
+    cols.push({tipo:'aval', a, rot:a.nome, max:a.max});
+  });
+  return `
+  <div style="margin-bottom:14px">
+    <div style="font-family:var(--display);font-size:20px;font-weight:700">${esc(c.instituicao||'Relação de notas')}</div>
+    <div style="font-size:14px">${esc(discAtiva()||'')}${eu.nome?' — '+esc(eu.nome):''}</div>
+    <div style="font-size:13px;color:var(--tinta-fraca)">Turma ${esc(rotuloTurma(t))} · ${esc([c.periodo&&c.periodo+'º',c.tipoPeriodo,c.ano].filter(Boolean).join(' '))} · emitida em ${new Date().toLocaleDateString('pt-BR')}</div>
+  </div>
+  <table class="pauta">
+    <thead><tr><th class="ord">Nº</th><th>Aluno</th>
+      ${cols.map(k=>`<th style="text-align:right">${esc(k.rot)}<br><span style="font-weight:400;text-transform:none">${fmt(k.max)}</span></th>`).join('')}
+      ${ctx.impFinal!==false?'<th style="text-align:right">Final</th>':''}
+      ${ctx.impAss?'<th style="width:22%">Assinatura</th>':''}</tr></thead>
+    <tbody>${alunos.map((al,i)=>`<tr><td class="ord">${i+1}</td><td class="nome">${esc(al.nome)}</td>
+      ${cols.map(k=>{
+        const v = k.tipo==='sub' ? notaSub(k.s, lanc(t.id,k.a.id,al.id,k.s.id)) : notaAval(k.a,t.id,al.id);
+        return `<td class="num" style="text-align:right">${v===null?'—':fmt(v)}</td>`;
+      }).join('')}
+      ${ctx.impFinal!==false?`<td class="final">${(()=>{const r=notaFinal(t,al.id,eu.id,discAtiva());return r.nota===null?'—':fmt(r.nota);})()}</td>`:''}
+      ${ctx.impAss?'<td></td>':''}</tr>`).join('')}</tbody>
+  </table>
+  <div style="margin-top:26px;font-size:12px;color:var(--tinta-fraca)">
+    ${calcDe(t.id,eu.id,discAtiva()).modo==='pesos'?'Nota final por valor fixo de cada avaliação.':'Nota final pela média das avaliações lançadas.'}
+    Escala da nota final: 0 a ${fmt(calcDe(t.id,eu.id,discAtiva()).maxFinal)}.
+  </div>`;
+}
+
+/* =======================================================================
+   08 · SINCRONIZAÇÃO
+   A nuvem é o único mecanismo de salvamento. A cópia .json existe apenas
+   como resgate manual, na mão do gerenciador.
+   ======================================================================= */
+function vNuvem(alvo){
+  alvo.innerHTML=`
+  <div class="cabeca"><div><h2>Sincronização</h2><div class="sub">Tudo o que você lança é gravado na caderneta da escola e aparece nos outros aparelhos.</div></div></div>
+  ${painelNuvem(false)}
+  <div class="painel">
+    <h3>Como funciona</h3>
+    <p class="desc">Não há nada para salvar manualmente.</p>
+    <div class="aviso">
+      Cada alteração sobe poucos segundos depois de você sair do campo, e o app confere a cada vinte segundos
+      se algum colega lançou algo novo. Entrando pelo mesmo endereço em outro aparelho — inclusive no celular —
+      você encontra a caderneta no ponto em que parou.
+    </div>
+    <div class="aviso ${nuvemLigada()?'bom':'erro'}">
+      ${nuvemLigada()
+        ? 'Este aparelho está ligado à caderneta da escola.'
+        : 'Este aparelho ainda não está ligado. Peça ao gerenciador o link de configuração — sem ele, o que você lançar fica preso aqui.'}
+    </div>
+  </div>`;
+  ligarPainelNuvem();
+}
+
+function exportarJSON(){
+  const nome = 'caderneta-'+(DB.capa.instituicao||'escola').replace(/\s+/g,'-').toLowerCase()+'-'+new Date().toISOString().slice(0,10)+'.json';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}));
+  a.download=nome; a.click(); URL.revokeObjectURL(a.href);
+  toast('Cópia baixada.');
+}
+function importarJSON(){
+  const i=document.createElement('input'); i.type='file'; i.accept='.json,application/json';
+  i.onchange=()=>{
+    const f=i.files[0]; if(!f) return;
+    const fr=new FileReader();
+    fr.onload=()=>{
+      try{
+        const j=JSON.parse(fr.result);
+        if(!j.turmas||!j.avaliacoes) throw new Error('arquivo fora do formato');
+        if(!confirm('Substituir a caderneta atual pelo conteúdo do arquivo? Isso também será enviado à nuvem.')) return;
+        DB=Object.assign(vazioDB(), j); migrar(); salvar();
+        if(nuvemLigada()){ SINC.enviados={}; sincronizar(true, true); }
+        if(sessao){ render(); } else { telaAcesso(); }
+        toast('Cópia restaurada.');
+      }catch(e){ toast('Arquivo inválido: '+e.message); }
+    };
+    fr.readAsText(f);
+  };
+  i.click();
+}
+
+/* =======================================================================
+   VISÃO DO GERENCIADOR
+   Dono das turmas, da lista de alunos, dos acessos e do cadastro docente.
+   ======================================================================= */
+var abaGer = 'professores';
+const ABAS_GER = [['professores','Professores'],['turmas','Turmas'],['alunos','Alunos'],
+                  ['pedidos','Solicitações'],['escola','Escola'],['nuvem','Nuvem']];
+
+function renderGerente(){
+  const pendCad = profPendentes().length;
+  const pendAcesso = Object.keys(DB.acessos).filter(k=>DB.acessos[k].status==='pendente').length;
+  const pendAluno = DB.pedidos.filter(p=>p.status==='pendente').length;
+  const aviso = { pedidos: pendAcesso+pendAluno, professores: pendCad };
+  $('#tela').innerHTML = `
+  <div class="boletim" style="max-width:1000px">
+    <div class="cabeca-b">
+      <h2>Gerenciador</h2>
+      <p>${esc(DB.capa.instituicao||'Caderneta da escola')} · ${DB.professores.length} professor(es) · ${DB.turmas.length} turma(s)</p>
+    </div>
+    <div class="corpo-b">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="tabs" style="margin:0;border:0">
+          ${ABAS_GER.map(a=>`<button class="${abaGer===a[0]?'on':''}" data-abager="${a[0]}">${a[1]}${aviso[a[0]]?` <span class="chip esp">${aviso[a[0]]}</span>`:''}</button>`).join('')}
+        </div>
+        <button class="btn sec min" id="gSair">Sair</button>
+      </div>
+      ${({professores:gerProfessores, turmas:gerTurmas, alunos:gerAlunos,
+          pedidos:gerPedidos, escola:gerEscola, nuvem:gerNuvem}[abaGer]||gerProfessores)()}
+    </div>
+  </div>`;
+  $('#gSair').onclick=()=>{ sessao=null; ctx={}; vista='capa'; abaAcesso='prof'; telaAcesso(); };
+  $$('[data-abager]').forEach(b=>b.onclick=()=>{ abaGer=b.dataset.abager; renderGerente(); });
+  ({professores:ligaProfessores, turmas:ligaTurmas, alunos:ligaAlunos,
+    pedidos:ligaPedidos, escola:ligaEscola, nuvem:ligarPainelNuvem}[abaGer]||ligaProfessores)();
+}
+
+/* ---------------- professores ---------------- */
+function gerProfessores(){
+  const pend = profPendentes(), ativos = profAtivos();
+  return `
+  <div class="painel" style="border-left:5px solid ${pend.length?'var(--ambar)':'var(--pauta)'}">
+    <h3>Solicitações de cadastro</h3>
+    <p class="desc">Professores que se cadastraram sozinhos e esperam liberação.</p>
+    ${pend.length? `<div class="lista">${pend.map(pr=>`
+      <div class="item">
+        <div><div class="t">${esc(pr.nome)}</div><div class="d">${esc(discsDoProf(pr).join(' · ')||'disciplina não informada')} · pedido em ${dataHora(pr.criadoEm)}</div></div>
+        <div class="acoes">
+          <button class="btn min" data-lib="${pr.id}">Liberar</button>
+          <button class="btn min perigo" data-rec="${pr.id}">Recusar</button>
+        </div></div>`).join('')}</div>`
+    : `<div class="vazio"><strong>Nada pendente</strong>As solicitações aparecem aqui assim que forem enviadas.</div>`}
+  </div>
+
+  <div class="painel">
+    <h3>Cadastrar professor</h3>
+    <p class="desc">Depois de cadastrar, use “Turmas e matérias” para dizer o que ele leciona e onde.</p>
+    <div class="linha">
+      <div class="campo"><label>Nome</label><input id="gNome" placeholder="Nome completo"></div>
+      <div class="campo" style="flex:0 1 170px"><label>Senha</label><input type="password" id="gSenha"></div>
+      <button class="btn" id="gAdd">Cadastrar</button>
+    </div>
+  </div>
+
+  <div class="painel">
+    <h3>Professores liberados</h3>
+    ${ativos.length? `<div class="rolagem"><table class="pauta">
+      <thead><tr><th class="ord">Nº</th><th>Nome</th><th>Disciplinas</th><th>Turmas</th><th style="width:1%">Ações</th></tr></thead>
+      <tbody>${[...ativos].sort(ordAlfa).map((pr,i)=>`<tr>
+        <td class="ord">${i+1}</td>
+        <td class="nome">${esc(pr.nome)}</td>
+        <td>${discsDoProf(pr).map(d=>`<span class="pill" style="margin-right:4px">${esc(d)}</span>`).join('')||'—'}</td>
+        <td class="num">${turmasDoProf(pr.id).length}</td>
+        <td><div class="acoes">
+          <button class="btn min sec" data-gsenha="${pr.id}">Senha</button>
+          <button class="btn min sec" data-gedit="${pr.id}">Turmas e matérias</button>
+          <button class="btn min sec" data-gsusp="${pr.id}">Suspender</button>
+          <button class="btn min perigo" data-gdel="${pr.id}">Excluir</button>
+        </div></td></tr>`).join('')}</tbody></table></div>`
+    : `<div class="vazio"><strong>Nenhum professor liberado</strong>Cadastre o primeiro acima.</div>`}
+  </div>
+
+  <div class="painel">
+    <h3>Senha do gerenciador</h3>
+    <p class="desc">Baixe uma cópia da caderneta antes de trocar.</p>
+    <div class="linha">
+      <div class="campo"><label>Senha atual</label><input type="password" id="ga"></div>
+      <div class="campo"><label>Nova senha</label><input type="password" id="gn"></div>
+      <button class="btn sec" id="gTrocar">Trocar senha</button>
+    </div>
+  </div>`;
+}
+function ligaProfessores(){
+  $$('[data-lib]').forEach(b=>b.onclick=()=>{
+    const pr=profPorId(b.dataset.lib); pr.status='ativo'; pr.liberadoEm=Date.now();
+    salvar(); renderGerente(); toast(`${pr.nome} já pode entrar.`);
+  });
+  $$('[data-rec]').forEach(b=>b.onclick=()=>{
+    const pr=profPorId(b.dataset.rec);
+    if(!confirm(`Recusar e apagar a solicitação de ${pr.nome}?`)) return;
+    DB.professores=DB.professores.filter(x=>x.id!==pr.id); salvar(); renderGerente();
+  });
+  $('#gAdd').onclick=async()=>{
+    const nome=$('#gNome').value.trim(), sen=$('#gSenha').value, discs=[];
+    if(!nome) return toast('Informe o nome do professor.');
+    if(DB.professores.some(x=>normal(x.nome)===normal(nome))) return toast('Já existe um cadastro com esse nome.');
+    if(sen.length<4) return toast('A senha precisa de pelo menos 4 caracteres.');
+    DB.professores.push({id:uid(), nome, disciplinas:discs, hash:await hash(sen), dica:'',
+      status:'ativo', criadoEm:Date.now(), liberadoEm:Date.now()});
+    salvar(); renderGerente(); toast('Professor cadastrado.');
+  };
+  $$('[data-gsenha]').forEach(b=>b.onclick=()=>{
+    const pr=profPorId(b.dataset.gsenha);
+    abrirModal(`<h3>Nova senha de ${esc(pr.nome)}</h3>
+      <div style="display:grid;gap:12px">
+        <div><label>Senha</label><input type="password" id="gs1"></div>
+        <div class="acoes"><button class="btn" id="gsOk">Definir</button><button class="btn sec" data-fechar>Cancelar</button></div>
+      </div>`);
+    $('#gsOk').onclick=async()=>{
+      const v=$('#gs1').value; if(v.length<4) return toast('Use pelo menos 4 caracteres.');
+      pr.hash=await hash(v); pr.dica=''; salvar(); fecharModal(); toast('Senha definida.');
+    };
+  });
+  $$('[data-gedit]').forEach(b=>b.onclick=()=>modalProfessor(profPorId(b.dataset.gedit)));
+  $$('[data-gsusp]').forEach(b=>b.onclick=()=>{
+    const pr=profPorId(b.dataset.gsusp);
+    if(!confirm(`Suspender o acesso de ${pr.nome}?`)) return;
+    pr.status='pendente'; pr.liberadoEm=null; salvar(); renderGerente();
+  });
+  $$('[data-gdel]').forEach(b=>b.onclick=()=>{
+    const pr=profPorId(b.dataset.gdel);
+    if(!confirm(`Excluir ${pr.nome}? As avaliações e notas dessa disciplina também serão apagadas.`)) return;
+    avaliacoesDoProf(pr.id).forEach(a=>{
+      Object.keys(DB.aplicacoes).forEach(k=>{ if(k.endsWith('::'+a.id)) delete DB.aplicacoes[k]; });
+    });
+    DB.avaliacoes=DB.avaliacoes.filter(a=>a.profId!==pr.id);
+    Object.keys(DB.acessos).forEach(k=>{ if(partesAcesso(k).profId===pr.id) delete DB.acessos[k]; });
+    Object.keys(DB.calculos).forEach(k=>{ if(k.endsWith('::'+pr.id)) delete DB.calculos[k]; });
+    DB.professores=DB.professores.filter(x=>x.id!==pr.id);
+    salvar(); renderGerente();
+  });
+  $('#gTrocar').onclick=async()=>{
+    if(await hash($('#ga').value)!==DB.gerente.hash) return toast('Senha atual incorreta.');
+    const n=$('#gn').value; if(n.length<4) return toast('Use pelo menos 4 caracteres.');
+    DB.gerente.hash=await hash(n); salvar(); renderGerente(); toast('Senha trocada.');
+  };
+}
+
+function atribuicoesDo(pr){
+  return Object.keys(DB.acessos).filter(k=>partesAcesso(k).profId===pr.id).map(k=>{
+    const a=partesAcesso(k);
+    return {k, turma:DB.turmas.find(t=>t.id===a.turmaId), disc:a.disc, status:DB.acessos[k].status};
+  }).filter(x=>x.turma).sort((x,y)=>ordTurma(x.turma,y.turma)||x.disc.localeCompare(y.disc,'pt-BR'));
+}
+
+function modalProfessor(pr){
+  const atrib = atribuicoesDo(pr);
+  const turmas = [...DB.turmas].sort(ordTurma);
+  const turmaSel = DB.turmas.find(t=>t.id===ctx.atribTurma) || turmas[0] || null;
+  const materias = materiasDaTurma(turmaSel);
+  abrirModal(`<h3>${esc(pr.nome)}</h3>
+    <div style="display:grid;gap:14px">
+      <div class="linha">
+        <div class="campo"><label>Nome</label><input id="ge1" value="${esc(pr.nome)}"></div>
+        <button class="btn sec" id="geOk">Salvar nome</button>
+      </div>
+
+      <div>
+        <label>Atribuir turma e matéria</label>
+        ${turmas.length? `
+          <div class="linha" style="margin-bottom:6px">
+            <div class="campo"><select id="atTurma">
+              ${turmas.map(t=>`<option value="${t.id}" ${turmaSel&&t.id===turmaSel.id?'selected':''}>${esc(rotuloTurma(t))}</option>`).join('')}
+            </select></div>
+          </div>
+          ${materias.length? `<div class="linha">
+              <div class="campo"><select id="atMat">${materias.map(m=>`<option>${esc(m)}</option>`).join('')}</select></div>
+              <button class="btn" id="atAdd">Atribuir</button>
+            </div>`
+          : `<div class="aviso erro">A série ${esc(rotuloSerie(chaveSerie(turmaSel)))} ainda não tem matérias. Cadastre-as na aba Turmas.</div>`}`
+        : `<div class="aviso">Cadastre turmas antes de atribuir.</div>`}
+      </div>
+
+      <div>
+        <label>Turmas e matérias deste professor</label>
+        ${atrib.length? `<div class="rolagem"><table class="pauta">
+          <thead><tr><th>Turma</th><th>Matéria</th><th>Situação</th><th style="width:1%"></th></tr></thead>
+          <tbody>${atrib.map(x=>`<tr>
+            <td class="nome">${esc(rotuloTurma(x.turma))}</td>
+            <td>${esc(x.disc||'—')}</td>
+            <td>${x.status==='ativo'?'<span class="chip ok">ativa</span>':'<span class="chip esp">pedido do professor</span>'}</td>
+            <td><div class="acoes">
+              ${x.status!=='ativo'?`<button class="btn min" data-atok="${x.k}">Liberar</button>`:''}
+              <button class="btn min perigo" data-atrm="${x.k}">Retirar</button>
+            </div></td></tr>`).join('')}</tbody></table></div>`
+        : `<div class="vazio"><strong>Nenhuma atribuição</strong>Escolha turma e matéria acima.</div>`}
+      </div>
+
+      <div class="acoes"><button class="btn sec" data-fechar>Fechar</button></div>
+    </div>`);
+
+  if($('#atTurma')) $('#atTurma').onchange=e=>{ ctx.atribTurma=e.target.value; fecharModal(); modalProfessor(pr); };
+  if($('#atAdd')) $('#atAdd').onclick=()=>{
+    const tid=$('#atTurma').value, m=$('#atMat').value;
+    const k=chaveAcesso(pr.id,tid,m);
+    if(DB.acessos[k] && DB.acessos[k].status==='ativo') return toast('Essa atribuição já existe.');
+    DB.acessos[k]={status:'ativo', pedidoEm:Date.now(), liberadoEm:Date.now()};
+    salvar(); fecharModal(); renderGerente(); modalProfessor(pr); toast('Atribuição criada.');
+  };
+  $$('[data-atok]').forEach(b=>b.onclick=()=>{
+    const a=DB.acessos[b.dataset.atok]; a.status='ativo'; a.liberadoEm=Date.now();
+    salvar(); fecharModal(); renderGerente(); modalProfessor(pr);
+  });
+  $$('[data-atrm]').forEach(b=>b.onclick=()=>{
+    const x=partesAcesso(b.dataset.atrm);
+    const avs=DB.avaliacoes.filter(a=>a.profId===pr.id && normal(a.disc||'')===normal(x.disc)
+      && DB.aplicacoes[chaveApl(x.turmaId,a.id)]);
+    if(avs.length && !confirm(`Há ${avs.length} avaliação(ões) desse professor lançadas nessa turma. Retirar a atribuição não apaga as notas, mas ele deixa de acessá-las. Continuar?`)) return;
+    delete DB.acessos[b.dataset.atrm];
+    salvar(); fecharModal(); renderGerente(); modalProfessor(pr);
+  });
+  $('#geOk').onclick=()=>{
+    const n=$('#ge1').value.trim(); if(!n) return toast('O nome não pode ficar vazio.');
+    if(DB.professores.some(x=>x.id!==pr.id && normal(x.nome)===normal(n))) return toast('Já existe outro professor com esse nome.');
+    pr.nome=n; salvar(); fecharModal(); renderGerente();
+  };
+}
+
+/* ---------------- turmas e catálogos ---------------- */
+function gerTurmas(){
+  const cat=DB.catalogos, turmas=[...DB.turmas].sort(ordTurma);
+  const opc=(lista,sel)=>lista.map(x=>`<option ${normal(x)===normal(sel||'')?'selected':''}>${esc(x)}</option>`).join('');
+  return `
+  <div class="painel">
+    <h3>Cadastrar turma</h3>
+    <p class="desc">A turma é identificada pela etapa, pela série, pelo turno e pela letra.</p>
+    <div class="linha" style="margin-bottom:10px">
+      <div class="campo"><label>Etapa</label><select id="tEtapa">${opc(cat.etapas)}</select></div>
+      <div class="campo" style="flex:0 1 110px"><label>Série</label><select id="tSerie">${[1,2,3,4,5,6,7,8,9].map(n=>`<option>${n}</option>`).join('')}</select></div>
+      <div class="campo" style="flex:0 1 150px"><label>Turno</label><select id="tTurno">${opc(cat.turnos)}</select></div>
+      <div class="campo" style="flex:0 1 130px"><label>Turma</label><select id="tNome">${opc(cat.nomes)}</select></div>
+      <button class="btn" id="tAdd">Cadastrar</button>
+    </div>
+  </div>
+
+  <div class="painel">
+    <h3>Turmas cadastradas</h3>
+    ${turmas.length? `<div class="rolagem"><table class="pauta">
+      <thead><tr><th class="ord">Nº</th><th>Turma</th><th>Alunos</th><th>Professores</th><th style="width:1%">Ações</th></tr></thead>
+      <tbody>${turmas.map((t,i)=>`<tr>
+        <td class="ord">${i+1}</td>
+        <td class="nome">${esc(rotuloTurma(t))}</td>
+        <td class="num">${t.alunos.length}</td>
+        <td>${(()=>{
+          const l=Object.keys(DB.acessos).filter(k=>DB.acessos[k].status==='ativo' && partesAcesso(k).turmaId===t.id)
+            .map(k=>{ const a=partesAcesso(k); const pr=profPorId(a.profId); return pr?`${esc(a.disc||'—')} (${esc(pr.nome)})`:null; })
+            .filter(Boolean);
+          return l.length? l.join(', ') : '<span style="color:var(--tinta-fraca)">nenhum</span>';
+        })()}</td>
+        <td><div class="acoes">
+          <button class="btn min sec" data-tedit="${t.id}">Editar</button>
+          <button class="btn min perigo" data-tdel="${t.id}">Excluir</button>
+        </div></td></tr>`).join('')}</tbody></table></div>`
+    : `<div class="vazio"><strong>Nenhuma turma</strong>Cadastre a primeira acima.</div>`}
+  </div>
+
+  <div class="painel">
+    <h3>Matérias de cada série</h3>
+    <p class="desc">Definem o que pode ser atribuído aos professores nas turmas daquela série.</p>
+    ${seriesCadastradas().length? seriesCadastradas().map(k=>`
+      <div class="subcard">
+        <header><div class="t">${esc(rotuloSerie(k))}</div>
+          <span class="pill">${DB.turmas.filter(t=>chaveSerie(t)===k).length} turma(s)</span></header>
+        <div class="escolhas" style="margin-bottom:10px">
+          ${materiasDaSerie(k).map(m=>`<button data-rmmat="${esc(k)}||${esc(m)}" title="Remover">${esc(m)} ×</button>`).join('')
+            || '<span class="pill">nenhuma matéria definida</span>'}
+        </div>
+        <div class="linha">
+          <div class="campo"><input data-matnova="${esc(k)}" placeholder="Acrescentar matéria"></div>
+          <button class="btn sec" data-matadd="${esc(k)}">Incluir</button>
+        </div>
+      </div>`).join('')
+    : `<div class="vazio"><strong>Nenhuma série ainda</strong>Cadastre uma turma acima e as matérias dela aparecem aqui.</div>`}
+  </div>
+
+  <div class="painel">
+    <h3>Etapas, turnos e nomes de turma</h3>
+    <p class="desc">Ajuste as listas que aparecem no cadastro.</p>
+    <div class="grade">
+      ${[['etapas','Etapas'],['turnos','Turnos'],['nomes','Nomes de turma']].map(([k,rot])=>`
+        <div>
+          <label>${rot}</label>
+          <div class="lista" style="margin-bottom:8px">
+            ${cat[k].map(v=>`<div class="item" style="padding:6px 10px">
+              <span>${esc(v)}</span>
+              <button class="btn min perigo" data-catdel="${k}::${esc(v)}">Remover</button></div>`).join('')||'<div class="pill">lista vazia</div>'}
+          </div>
+          <div class="linha"><div class="campo"><input data-catnovo="${k}" placeholder="Acrescentar"></div>
+          <button class="btn sec min" data-catadd="${k}">Incluir</button></div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+function ligaTurmas(){
+  $('#tAdd').onclick=()=>{
+    const t={id:uid(), etapa:$('#tEtapa').value, serie:$('#tSerie').value,
+             turno:$('#tTurno').value, nome:$('#tNome').value, alunos:[]};
+    if(DB.turmas.some(x=>x.etapa===t.etapa&&x.serie===t.serie&&x.turno===t.turno&&normal(x.nome)===normal(t.nome)))
+      return toast('Essa turma já está cadastrada.');
+    DB.turmas.push(t); salvar(); renderGerente(); toast('Turma cadastrada.');
+  };
+  $$('[data-tedit]').forEach(b=>b.onclick=()=>{
+    const t=DB.turmas.find(x=>x.id===b.dataset.tedit), cat=DB.catalogos;
+    const opc=(l,sel)=>l.map(x=>`<option ${normal(x)===normal(sel||'')?'selected':''}>${esc(x)}</option>`).join('');
+    abrirModal(`<h3>Editar turma</h3>
+      <div style="display:grid;gap:12px">
+        <div><label>Etapa</label><select id="e1">${opc(cat.etapas,t.etapa)}</select></div>
+        <div><label>Série</label><select id="e2">${[1,2,3,4,5,6,7,8,9].map(n=>`<option ${String(t.serie)===String(n)?'selected':''}>${n}</option>`).join('')}</select></div>
+        <div><label>Turno</label><select id="e3">${opc(cat.turnos,t.turno)}</select></div>
+        <div><label>Turma</label><select id="e4">${opc(cat.nomes,t.nome)}</select></div>
+        <div class="acoes"><button class="btn" id="eOk">Salvar</button><button class="btn sec" data-fechar>Cancelar</button></div>
+      </div>`);
+    $('#eOk').onclick=()=>{
+      t.etapa=$('#e1').value; t.serie=$('#e2').value; t.turno=$('#e3').value; t.nome=$('#e4').value;
+      salvar(); fecharModal(); renderGerente();
+    };
+  });
+  $$('[data-tdel]').forEach(b=>b.onclick=()=>{
+    const t=DB.turmas.find(x=>x.id===b.dataset.tdel);
+    if(!confirm(`Excluir ${rotuloTurma(t)} com ${t.alunos.length} aluno(s)? As notas de todas as disciplinas nessa turma serão apagadas.`)) return;
+    DB.turmas=DB.turmas.filter(x=>x.id!==t.id);
+    Object.keys(DB.aplicacoes).forEach(k=>{ if(k.startsWith(t.id+'::')) delete DB.aplicacoes[k]; });
+    Object.keys(DB.acessos).forEach(k=>{ if(partesAcesso(k).turmaId===t.id) delete DB.acessos[k]; });
+    Object.keys(DB.calculos).forEach(k=>{ if(k.startsWith(t.id+'::')) delete DB.calculos[k]; });
+    salvar(); renderGerente();
+  });
+  $$('[data-matadd]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.matadd, v=$(`[data-matnova="${k}"]`).value.trim();
+    if(!v) return toast('Escreva o nome da matéria.');
+    const l=materiasDaSerie(k);
+    if(l.some(m=>normal(m)===normal(v))) return toast('Essa matéria já está na lista.');
+    DB.catalogos.materias[k]=[...l, v].sort((x,y)=>x.localeCompare(y,'pt-BR'));
+    salvar(); renderGerente();
+  });
+  $$('[data-rmmat]').forEach(b=>b.onclick=()=>{
+    const [k,m]=b.dataset.rmmat.split('||');
+    const usada = Object.keys(DB.acessos).some(x=>{
+      const a=partesAcesso(x); const t=DB.turmas.find(y=>y.id===a.turmaId);
+      return t && chaveSerie(t)===k && normal(a.disc)===normal(m);
+    });
+    if(usada && !confirm(`Há professor com ${m} atribuída nesta série. Remover a matéria não desfaz as atribuições. Continuar?`)) return;
+    DB.catalogos.materias[k]=materiasDaSerie(k).filter(x=>normal(x)!==normal(m));
+    salvar(); renderGerente();
+  });
+  $$('[data-catadd]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.catadd, v=$(`[data-catnovo="${k}"]`).value.trim();
+    if(!v) return toast('Escreva o que quer incluir.');
+    if(DB.catalogos[k].some(x=>normal(x)===normal(v))) return toast('Já está na lista.');
+    DB.catalogos[k].push(v); salvar(); renderGerente();
+  });
+  $$('[data-catdel]').forEach(b=>b.onclick=()=>{
+    const [k,v]=b.dataset.catdel.split('::');
+    if(DB.turmas.some(t=>normal(t[k==='etapas'?'etapa':k==='turnos'?'turno':'nome'])===normal(v)))
+      return toast('Há turmas usando esse valor. Edite-as antes.');
+    DB.catalogos[k]=DB.catalogos[k].filter(x=>x!==v); salvar(); renderGerente();
+  });
+}
+
+/* ---------------- alunos ---------------- */
+function gerAlunos(){
+  const turmas=[...DB.turmas].sort(ordTurma);
+  const t=DB.turmas.find(x=>x.id===ctx.gTurma);
+  const alunos=t?[...t.alunos].sort(ordAlfa):[];
+  return `
+  <div class="painel">
+    <h3>Lista de alunos</h3>
+    <p class="desc">A lista é da turma e vale para todos os professores dela.</p>
+    <div class="linha"><div class="campo"><label>Turma</label><select id="gaTurma">
+      <option value="">Selecione…</option>
+      ${turmas.map(x=>`<option value="${x.id}" ${ctx.gTurma===x.id?'selected':''}>${esc(rotuloTurma(x))}</option>`).join('')}
+    </select></div></div>
+  </div>
+  ${t?`
+  <div class="painel">
+    <h3>${esc(rotuloTurma(t))}</h3>
+    <div class="linha" style="margin-bottom:10px">
+      <div class="campo"><label>Novo aluno</label><input id="gaNome" placeholder="Nome completo"></div>
+      <button class="btn" id="gaAdd">Adicionar</button>
+    </div>
+    <label>Ou cole a lista inteira — um nome por linha</label>
+    <textarea id="gaLista" style="min-height:110px"></textarea>
+    <button class="btn sec" id="gaAddLista" style="margin-top:8px">Adicionar lista</button>
+    ${alunos.length?`<div class="rolagem" style="margin-top:16px"><table class="pauta">
+      <thead><tr><th class="ord">Nº</th><th>Nome</th><th>Senha</th><th style="width:1%">Ações</th></tr></thead>
+      <tbody>${alunos.map((a,i)=>`<tr>
+        <td class="ord">${i+1}</td><td class="nome">${esc(a.nome)}</td>
+        <td>${a.senha?'<span class="chip ok">cadastrada</span>':'<span class="chip off">não criada</span>'}</td>
+        <td><div class="acoes">
+          <button class="btn min sec" data-garen="${a.id}">Renomear</button>
+          <button class="btn min perigo" data-gadel="${a.id}">Excluir</button>
+        </div></td></tr>`).join('')}</tbody></table></div>`
+    :`<div class="vazio" style="margin-top:16px"><strong>Turma sem alunos</strong>Acrescente os nomes acima.</div>`}
+  </div>`:''}`;
+}
+function ligaAlunos(){
+  $('#gaTurma').onchange=e=>{ ctx.gTurma=e.target.value; renderGerente(); };
+  const t=DB.turmas.find(x=>x.id===ctx.gTurma); if(!t) return;
+  const add=nome=>{
+    nome=nome.replace(/^\s*\d+\s*[-–.)°º]?\s*/,'').replace(/^[-•*]\s*/,'').replace(/\s+/g,' ').trim();
+    if(!nome) return false;
+    if(t.alunos.some(a=>normal(a.nome)===normal(nome))) return false;
+    t.alunos.push({id:uid(), nome, senha:'', resetLiberado:false}); return true;
+  };
+  $('#gaAdd').onclick=()=>{ if(!add($('#gaNome').value)) return toast('Nome vazio ou já existente.');
+    salvar(); renderGerente(); toast('Aluno adicionado.'); };
+  $('#gaAddLista').onclick=()=>{
+    let n=0; $('#gaLista').value.split(/\r?\n/).forEach(l=>{ if(add(l)) n++; });
+    salvar(); renderGerente(); toast(n?`${n} aluno(s) adicionado(s).`:'Nenhum nome novo.');
+  };
+  $$('[data-garen]').forEach(b=>b.onclick=()=>{
+    const a=t.alunos.find(x=>x.id===b.dataset.garen);
+    const n=prompt('Nome completo:', a.nome); if(n&&n.trim()){ a.nome=n.trim(); salvar(); renderGerente(); }
+  });
+  $$('[data-gadel]').forEach(b=>b.onclick=()=>{
+    const a=t.alunos.find(x=>x.id===b.dataset.gadel);
+    if(!confirm(`Excluir ${a.nome}? As notas dele em todas as disciplinas serão apagadas.`)) return;
+    excluirAluno(t, a.id); salvar(); renderGerente();
+  });
+}
+function excluirAluno(t, alunoId){
+  t.alunos=t.alunos.filter(x=>x.id!==alunoId);
+  Object.keys(DB.aplicacoes).forEach(k=>{ if(k.startsWith(t.id+'::')) delete DB.aplicacoes[k].notas[alunoId]; });
+  DB.pedidos=DB.pedidos.filter(p=>p.alunoId!==alunoId);
+}
+
+/* ---------------- solicitações ---------------- */
+function gerPedidos(){
+  const acessos = Object.keys(DB.acessos).filter(k=>DB.acessos[k].status==='pendente').map(k=>{
+    const a=partesAcesso(k);
+    return {k, prof:profPorId(a.profId), turma:DB.turmas.find(t=>t.id===a.turmaId), disc:a.disc, em:DB.acessos[k].pedidoEm};
+  }).filter(x=>x.prof&&x.turma);
+  const exclus = DB.pedidos.filter(p=>p.status==='pendente');
+  return `
+  <div class="painel" style="border-left:5px solid ${acessos.length?'var(--ambar)':'var(--pauta)'}">
+    <h3>Acesso a turmas</h3>
+    <p class="desc">Cada pedido vale para uma disciplina numa turma. Liberando, o professor passa a criar avaliações só daquela matéria ali.</p>
+    ${acessos.length? `<div class="lista">${acessos.map(x=>`
+      <div class="item">
+        <div><div class="t">${esc(x.prof.nome)} — ${esc(x.disc||'sem disciplina')}</div>
+          <div class="d">${esc(rotuloTurma(x.turma))} · pedido em ${dataHora(x.em)}</div></div>
+        <div class="acoes">
+          <button class="btn min" data-acok="${x.k}">Liberar</button>
+          <button class="btn min perigo" data-acno="${x.k}">Negar</button>
+        </div></div>`).join('')}</div>`
+    : `<div class="vazio"><strong>Nada pendente</strong>Os pedidos dos professores caem aqui.</div>`}
+  </div>
+
+  <div class="painel" style="border-left:5px solid ${exclus.length?'var(--carimbo)':'var(--pauta)'}">
+    <h3>Exclusão de alunos</h3>
+    <p class="desc">Pedidos feitos pelos professores. A exclusão apaga as notas do aluno em todas as disciplinas.</p>
+    ${exclus.length? `<div class="lista">${exclus.map(p=>`
+      <div class="item">
+        <div><div class="t">${esc(p.nome)}</div>
+          <div class="d">${esc(nomeTurma(p.turmaId))} · pedido por ${esc((profPorId(p.profId)||{}).nome||'—')} em ${dataHora(p.em)}
+          ${p.motivo?`<br>Motivo: ${esc(p.motivo)}`:''}</div></div>
+        <div class="acoes">
+          <button class="btn min perigo" data-exok="${p.id}">Excluir aluno</button>
+          <button class="btn min sec" data-exno="${p.id}">Manter</button>
+        </div></div>`).join('')}</div>`
+    : `<div class="vazio"><strong>Nada pendente</strong>Nenhum professor pediu exclusão de aluno.</div>`}
+  </div>
+
+  <div class="painel">
+    <h3>Acessos já liberados</h3>
+    ${(()=>{
+      const l=Object.keys(DB.acessos).filter(k=>DB.acessos[k].status==='ativo').map(k=>{
+        const a=partesAcesso(k); return {k, prof:profPorId(a.profId), turma:DB.turmas.find(t=>t.id===a.turmaId), disc:a.disc};
+      }).filter(x=>x.prof&&x.turma).sort((x,y)=>x.prof.nome.localeCompare(y.prof.nome,'pt-BR'));
+      return l.length? `<div class="rolagem"><table class="pauta">
+        <thead><tr><th>Professor</th><th>Disciplina</th><th>Turma</th><th style="width:1%"></th></tr></thead>
+        <tbody>${l.map(x=>`<tr><td class="nome">${esc(x.prof.nome)}</td><td>${esc(x.disc||'—')}</td>
+          <td>${esc(rotuloTurma(x.turma))}</td>
+          <td><button class="btn min perigo" data-acrev="${x.k}">Revogar</button></td></tr>`).join('')}</tbody></table></div>`
+      : `<div class="vazio"><strong>Nenhum acesso liberado</strong>Libere os pedidos acima.</div>`;
+    })()}
+  </div>`;
+}
+function ligaPedidos(){
+  $$('[data-acok]').forEach(b=>b.onclick=()=>{
+    const a=DB.acessos[b.dataset.acok]; a.status='ativo'; a.liberadoEm=Date.now();
+    salvar(); renderGerente(); toast('Acesso liberado.');
+  });
+  $$('[data-acno]').forEach(b=>b.onclick=()=>{ delete DB.acessos[b.dataset.acno]; salvar(); renderGerente(); });
+  $$('[data-acrev]').forEach(b=>b.onclick=()=>{
+    if(!confirm('Revogar este acesso? As notas já lançadas continuam guardadas.')) return;
+    delete DB.acessos[b.dataset.acrev]; salvar(); renderGerente();
+  });
+  $$('[data-exok]').forEach(b=>b.onclick=()=>{
+    const p=DB.pedidos.find(x=>x.id===b.dataset.exok);
+    const t=DB.turmas.find(x=>x.id===p.turmaId);
+    if(!t) { DB.pedidos=DB.pedidos.filter(x=>x.id!==p.id); salvar(); return renderGerente(); }
+    if(!confirm(`Excluir ${p.nome} de ${rotuloTurma(t)} e apagar suas notas em todas as disciplinas?`)) return;
+    excluirAluno(t, p.alunoId); salvar(); renderGerente(); toast('Aluno excluído.');
+  });
+  $$('[data-exno]').forEach(b=>b.onclick=()=>{
+    DB.pedidos=DB.pedidos.filter(x=>x.id!==b.dataset.exno); salvar(); renderGerente(); toast('Pedido recusado.');
+  });
+}
+
+/* ---------------- escola ---------------- */
+function gerEscola(){
+  const c=DB.capa;
+  return `
+  <div class="painel">
+    <h3>Dados da escola</h3>
+    <p class="desc">Aparecem no acesso dos alunos e no cabeçalho das listas impressas.</p>
+    <div class="linha" style="margin-bottom:12px">
+      <div class="campo"><label>Instituição</label><input id="e_inst" value="${esc(c.instituicao)}"></div>
+      <div class="campo" style="flex:0 1 150px"><label>Período</label>
+        <select id="e_tipo">${['Bimestre','Trimestre','Semestre','Mês'].map(t=>`<option ${c.tipoPeriodo===t?'selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="campo" style="flex:0 1 110px"><label>Nº</label><input id="e_per" value="${esc(c.periodo)}"></div>
+      <div class="campo" style="flex:0 1 110px"><label>Ano</label><input id="e_ano" value="${esc(c.ano)}"></div>
+      <button class="btn" id="eSalvar">Salvar</button>
+    </div>
+  </div>
+  <div class="painel">
+    <h3>Cópia de resgate</h3>
+    <p class="desc">A caderneta vive na nuvem. Este arquivo serve só para emergências.</p>
+    <div class="acoes">
+      <button class="btn sec" id="gExp">Baixar cópia</button>
+      <button class="btn sec" id="gImp">Restaurar de um arquivo</button>
+    </div>
+  </div>`;
+}
+function ligaEscola(){
+  $('#eSalvar').onclick=()=>{
+    DB.capa.instituicao=$('#e_inst').value.trim(); DB.capa.tipoPeriodo=$('#e_tipo').value;
+    DB.capa.periodo=$('#e_per').value.trim(); DB.capa.ano=$('#e_ano').value.trim();
+    salvar(); renderGerente(); toast('Dados salvos.');
+  };
+  $('#gExp').onclick=exportarJSON;
+  $('#gImp').onclick=importarJSON;
+}
+function gerNuvem(){ return painelNuvem(true); }
+
+/* =======================================================================
+   VISÃO DO ALUNO
+   ======================================================================= */
+function dadosAluno(t, al, profId, disc){
+  const avs = avaliacoesDaTurma(t.id, profId, disc).filter(a=>apl(t.id,a.id).visivel);
+  const calc = calcDe(t.id, profId, disc);
+  const itens = avs.map(a=>{
+    const n=notaAval(a,t.id,al.id);
+    return {a, n, pct:(n===null||num(a.max,0)<=0)?null:n/num(a.max,1), valor:num((calc.pesos||{})[a.id],0)};
+  });
+  const lancadas = itens.filter(i=>i.pct!==null);
+  let final=null;
+  if(lancadas.length){
+    final = calc.modo==='pesos'
+      ? lancadas.reduce((s,i)=>s+i.pct*i.valor,0)
+      : (lancadas.reduce((s,i)=>s+i.pct,0)/lancadas.length)*num(calc.maxFinal,10);
+  }
+  return {avs, itens, lancadas, calc, final};
+}
+
+function renderAluno(){
+  const t=DB.turmas.find(x=>x.id===sessao.turmaId);
+  const al=t?t.alunos.find(x=>x.id===sessao.alunoId):null;
+  if(!t||!al){ sessao=null; return telaAcesso(); }
+  const c=DB.capa;
+  const discs = disciplinasDaTurma(t.id);
+  const par = discs.find(p=>p.chave===ctx.alunoProf) || null;
+  const D = par ? dadosAluno(t, al, par.prof.id, par.disc) : null;
+  const aberta = D ? D.avs.find(a=>a.id===ctx.alunoAval) : null;
+
+  $('#tela').innerHTML=`
+  <div class="boletim">
+    <div class="cabeca-b">
+      <h2>${esc(al.nome)}</h2>
+      <p>${esc(rotuloTurma(t))}${c.instituicao?' · '+esc(c.instituicao):''}
+      ${c.periodo||c.ano?`<br>${esc([c.periodo&&c.periodo+'º',c.tipoPeriodo,c.ano].filter(Boolean).join(' '))}`:''}</p>
+    </div>
+    <div class="corpo-b">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+        <div>${par?`<button class="btn sec min" id="voltarDisc">← Todas as disciplinas</button>`
+                   :`<strong style="font-family:var(--display);font-size:18px">Escolha a disciplina</strong>`}</div>
+        <div class="acoes">
+          <button class="btn sec min" id="alSenha">Trocar minha senha</button>
+          <button class="btn sec min" id="alSair">Sair</button>
+        </div>
+      </div>
+      ${!par ? listaDisciplinas(t, al, discs)
+        : `
+        <div style="margin-bottom:20px">
+          <label>${esc(par.disc)} — ${D.calc.modo==='pesos'?'soma das avaliações liberadas':'média das avaliações liberadas'}</label>
+          <div class="notao">${D.final===null?'—':fmt(D.final)}<span style="font-size:16px;color:var(--tinta-fraca)"> / ${fmt(D.calc.maxFinal)}</span></div>
+          <div style="font-size:12.5px;color:var(--tinta-fraca);max-width:420px">
+            ${D.lancadas.length?`Com ${D.lancadas.length} avaliação(ões) liberada(s) por ${esc(par.prof.nome)}. O valor muda conforme novas avaliações forem liberadas.`:'Nenhuma nota lançada até aqui.'}
+          </div>
+        </div>
+        ${aberta ? detalheAlunoAval(t, aberta, al) : resumoAluno(t, al, D)}`}
+    </div>
+  </div>`;
+
+  $('#alSair').onclick=()=>{ sessao=null; ctx={}; telaAcesso(); };
+  if($('#voltarDisc')) $('#voltarDisc').onclick=()=>{ ctx.alunoProf=null; ctx.alunoAval=null; renderAluno(); };
+  $('#alSenha').onclick=()=>{
+    abrirModal(`<h3>Trocar minha senha</h3>
+      <div style="display:grid;gap:12px">
+        <div><label>Senha atual</label><input type="password" id="t0"></div>
+        <div><label>Nova senha</label><input type="password" id="t1"></div>
+        <div class="acoes"><button class="btn" id="tOk">Salvar</button><button class="btn sec" data-fechar>Cancelar</button></div>
+      </div>`);
+    $('#tOk').onclick=async()=>{
+      if(await hash($('#t0').value)!==al.senha) return toast('Senha atual incorreta.');
+      const n=$('#t1').value; if(n.length<4) return toast('Use pelo menos 4 caracteres.');
+      al.senha=await hash(n); salvar(); fecharModal(); toast('Senha trocada.');
+    };
+  };
+  $$('[data-verdisc]').forEach(b=>b.onclick=()=>{ ctx.alunoProf=b.dataset.verdisc; ctx.alunoAval=null; renderAluno(); try{window.scrollTo(0,0);}catch(e){} });
+  $$('[data-verav]').forEach(b=>b.onclick=()=>{ ctx.alunoAval=b.dataset.verav; renderAluno(); try{window.scrollTo(0,0);}catch(e){} });
+  if($('#voltarResumo')) $('#voltarResumo').onclick=()=>{ ctx.alunoAval=null; renderAluno(); try{window.scrollTo(0,0);}catch(e){} };
+}
+
+/* cada professor da turma que já liberou alguma nota */
+function listaDisciplinas(t, al, discs){
+  if(!discs.length) return `<div class="vazio"><strong>Nenhuma nota liberada ainda</strong>Assim que um professor liberar as notas de uma avaliação, a disciplina aparece aqui.</div>`;
+  return `<div class="lista">${discs.map(p=>{
+    const D=dadosAluno(t, al, p.prof.id, p.disc);
+    return `<div class="item">
+      <div>
+        <div class="t">${esc(p.disc)}</div>
+        <div class="d">${esc(p.prof.nome)} · ${D.lancadas.length} de ${D.avs.length} avaliação(ões) com nota</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-weight:700;font-size:20px;color:var(--azul)">${D.final===null?'—':fmt(D.final)}</div>
+          <div class="salvo">de ${fmt(D.calc.maxFinal)}</div>
+        </div>
+        <button class="btn min sec" data-verdisc="${esc(p.chave)}">Ver notas</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+/* quadro geral de uma disciplina */
+function resumoAluno(t, al, D){
+  if(!D.avs.length) return `<div class="vazio"><strong>Nada liberado nesta disciplina</strong>O professor ainda não abriu as notas.</div>`;
+  return `
+  <h3 style="font-size:17px;margin-bottom:2px">Avaliações</h3>
+  <p style="color:var(--tinta-fraca);font-size:13px;margin:0 0 14px">Toque em uma avaliação para ver parte por parte como a nota foi formada.</p>
+  <div class="rolagem"><table class="pauta">
+    <thead><tr>
+      <th class="ord">Nº</th><th>Avaliação</th><th style="text-align:right">Minha nota</th>
+      <th style="text-align:right">Vale</th><th style="text-align:right">Aproveitamento</th>
+      <th style="text-align:right">${D.calc.modo==='pesos'?'Na nota final':'Partes'}</th><th></th>
+    </tr></thead>
+    <tbody>${D.itens.map((i,k)=>`<tr>
+      <td class="ord">${k+1}</td>
+      <td class="nome">${esc(i.a.nome)}</td>
+      <td class="final">${i.n===null?'<span style="color:var(--tinta-fraca);font-weight:400">não lançada</span>':fmt(i.n)}</td>
+      <td class="num" style="text-align:right">${fmt(i.a.max)}</td>
+      <td class="num" style="text-align:right">${i.pct===null?'—':Math.round(i.pct*100)+'%'}</td>
+      <td class="num" style="text-align:right">${D.calc.modo==='pesos'?`até ${fmt(i.valor)}`:`${subsDaTurma(i.a,t.id).length}`}</td>
+      <td><button class="btn min sec" data-verav="${i.a.id}">Ver detalhe</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div>
+  <div class="aviso" style="margin-top:14px">
+    ${D.calc.modo==='pesos'
+      ? `Cada avaliação entrega no máximo o valor da coluna “Na nota final”, proporcional ao seu aproveitamento nela.`
+      : `Todas as avaliações pesam igual na média, mesmo valendo pontuações diferentes: o que entra na conta é o aproveitamento de cada uma, na escala de ${fmt(D.calc.maxFinal)}.`}
+  </div>`;
+}
+
+/* detalhe de uma avaliação: cada sub-avaliação com pontuação, imagem e gabarito */
+function detalheAlunoAval(t,a,al){
+  const n=notaAval(a,t.id,al.id);
+  const subs=subsDaTurma(a,t.id);
+  const linhas=subs.map(s=>({s, e:lanc(t.id,a.id,al.id,s.id)||{}, n:notaSub(s,lanc(t.id,a.id,al.id,s.id))}));
+  const somaMax = somaSubs(a);
+  return `
+  <button class="btn sec min" id="voltarResumo" style="margin-bottom:14px">← Todas as avaliações</button>
+  <div class="faixa-visib on" style="margin-bottom:16px">
+    <div class="txt">
+      <strong>${esc(a.nome)}</strong>
+      <span>${a.modoSub==='media'
+        ? `A nota é a média das partes lançadas, convertida para a escala de ${fmt(a.max)}.`
+        : `A nota é a soma das partes, que juntas valem ${fmt(somaMax)}.`}</span>
+    </div>
+    <div style="text-align:right">
+      <div class="notao" style="font-size:28px">${n===null?'—':fmt(n)}</div>
+      <div class="salvo">de ${fmt(a.max)} pontos</div>
+    </div>
+  </div>
+  ${a.descricao?`<div class="aviso" style="border-color:var(--azul)">${esc(a.descricao)}</div>`:''}
+
+  <div class="rolagem"><table class="pauta">
+    <thead><tr><th class="ord">Nº</th><th>Parte</th><th>Data</th><th style="text-align:right">Acertos</th>
+      <th style="text-align:right">Pontuação</th><th style="text-align:right">Valia</th><th>Observação</th></tr></thead>
+    <tbody>${linhas.map((l,k)=>`<tr class="${l.e.faltou?'faltou':''}">
+      <td class="ord">${k+1}</td>
+      <td class="nome">${esc(l.s.nome||'Parte '+(k+1))}</td>
+      <td class="num">${dataBR(l.s.data)||'—'}</td>
+      <td class="num" style="text-align:right">${l.s.modo==='acertos'&&(l.s.questoes||[]).length?`${l.e.nAcertos??'—'} de ${(l.s.questoes||[]).length}`:'—'}</td>
+      <td class="final">${l.e.faltou?'faltou':(l.n===null?'<span style="color:var(--tinta-fraca);font-weight:400">—</span>':fmt(l.n))}</td>
+      <td class="num" style="text-align:right">${fmt(l.s.max)}</td>
+      <td style="font-size:12.5px">${l.e.just?esc(l.e.just):'<span style="color:var(--tinta-fraca)">—</span>'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>
+
+  <h3 style="font-size:16px;margin:20px 0 4px">O que era cada parte</h3>
+  <p style="color:var(--tinta-fraca);font-size:13px;margin:0 0 12px">Enunciado, imagem da atividade e gabarito, quando o professor anexou.</p>
+  ${linhas.map((l,k)=>{
+    const s=l.s, e=l.e;
+    const temAnexo = s.descricao||s.imagem||s.gabTexto||s.gabImagem||e.just
+      ||(s.modo==='acertos'&&(s.questoes||[]).length)||(s.questoes||[]).some(q=>q.gab);
+    return `<div class="subcard">
+      <header>
+        <div class="t">${k+1}. ${esc(s.nome||'Parte')}</div>
+        <div class="pill">${e.faltou?'Faltou · 0':(l.n===null?'sem lançamento':`${fmt(l.n)} de ${fmt(s.max)}`)}</div>
+      </header>
+      ${s.data?`<div class="salvo">${dataBR(s.data)}</div>`:''}
+      ${s.descricao?`<p style="font-size:13.5px;margin:8px 0;white-space:pre-wrap">${esc(s.descricao)}</p>`:''}
+      ${s.modo==='acertos'&&(s.questoes||[]).length?`
+        <div class="aviso" style="margin:8px 0">
+          ${e.nAcertos??'—'} acerto(s) em ${(s.questoes||[]).length} questão(ões).
+          ${num(s.notaMin,0)>0?`Quem não acerta nenhuma fica com ${fmt(s.notaMin)}; `:''}
+          ${(s.questoes||[]).some(q=>num(q.peso,1)!==1)?'as questões têm pesos diferentes.':'todas as questões valem o mesmo.'}
+        </div>`:''}
+      ${e.just?`<div class="aviso"><strong>Observação do professor:</strong> ${esc(e.just)}</div>`:''}
+      ${s.imagem?`<div style="margin-top:10px"><label>Atividade</label>
+        <img src="${s.imagem}" alt="Atividade" style="max-width:100%;border-radius:4px;border:1px solid var(--pauta)"></div>`:''}
+      ${(s.gabTexto||s.gabImagem||(s.questoes||[]).some(q=>q.gab))?`<details class="q"><summary>Ver gabarito</summary>
+        ${s.gabTexto?`<p style="font-size:13.5px;white-space:pre-wrap">${esc(s.gabTexto)}</p>`:''}
+        ${(s.questoes||[]).some(q=>q.gab)?`<div class="qgrade">${s.questoes.map((q,i)=>q.gab?`<div class="qitem"><div class="qn">Questão ${i+1}${num(q.peso,1)!==1?` · peso ${fmt(q.peso,1)}`:''}</div><div style="font-weight:700">${esc(q.gab)}</div></div>`:'').join('')}</div>`:''}
+        ${s.gabImagem?`<img src="${s.gabImagem}" alt="Gabarito" style="max-width:100%;margin-top:8px;border-radius:4px;border:1px solid var(--pauta)">`:''}
+      </details>`:''}
+      ${!temAnexo?`<p style="font-size:13px;color:var(--tinta-fraca);margin:6px 0 0">O professor não anexou material a esta parte.</p>`:''}
+    </div>`;
+  }).join('')}`;
+}
+
+/* =======================================================================
+   NUVEM — caderneta compartilhada
+   Os dados são quebrados em fragmentos (capa, cada turma, cada avaliação,
+   cada folha de notas). Só o fragmento alterado é enviado, então dois
+   professores lançando ao mesmo tempo não se sobrescrevem.
+   ======================================================================= */
+const cadernetaVazia = (x)=>{ const o=x||DB;
+  return !(o.turmas||[]).length && !(o.avaliacoes||[]).length && !(o.professores||[]).length; };
+const CHAVE_NUVEM = 'caderneta_nuvem';
+const CHAVE_SINC  = 'caderneta_sinc';
+var NUVEM = { url:'', chave:'' };
+var SINC  = { ultimo:null, enviados:{}, estado:'desligado', erro:'', em:null };
+var timerSinc=null, sincronizando=false, jaBaixou=false;
+
+const nuvemLigada = ()=> !!(NUVEM.url && NUVEM.chave);
+
+function carregarNuvem(){
+  try{
+    const m = (location.hash||'').match(/[#&]n=([^&]+)/);
+    if(m){
+      const cfg = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+      if(cfg.u && cfg.k){
+        NUVEM={url:cfg.u, chave:cfg.k};
+        localStorage.setItem(CHAVE_NUVEM, JSON.stringify(NUVEM));
+        try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+      }
+    }
+  }catch(e){}
+  try{
+    if(!nuvemLigada()){
+      const c=JSON.parse(localStorage.getItem(CHAVE_NUVEM)||'null');
+      if(c&&c.u) NUVEM={url:c.u, chave:c.k};
+    }
+    const s=JSON.parse(localStorage.getItem(CHAVE_SINC)||'null');
+    if(s){ SINC.ultimo=s.ultimo||null; SINC.enviados=s.enviados||{}; }
+  }catch(e){}
+}
+function gravarNuvemCfg(){
+  try{
+    localStorage.setItem(CHAVE_NUVEM, JSON.stringify({u:NUVEM.url,k:NUVEM.chave}));
+    localStorage.setItem(CHAVE_SINC, JSON.stringify({ultimo:SINC.ultimo, enviados:SINC.enviados}));
+  }catch(e){}
+}
+const publicado = ()=> location.protocol==='http:' || location.protocol==='https:';
+function linkConfiguracao(){
+  const b = btoa(unescape(encodeURIComponent(JSON.stringify({u:NUVEM.url,k:NUVEM.chave}))));
+  return location.origin+location.pathname+'#n='+encodeURIComponent(b);
+}
+function ondeEstou(){
+  if(location.protocol==='file:') return {ok:false, txt:'arquivo neste computador ('+location.pathname.split('/').pop()+')'};
+  return {ok:true, txt:location.origin+location.pathname};
+}
+
+/* marca leve para detectar o que mudou sem guardar cópia dos dados */
+function marca(txt){
+  let h=5381; for(let i=0;i<txt.length;i++){ h=((h<<5)+h+txt.charCodeAt(i))|0; }
+  return txt.length+':'+(h>>>0).toString(36);
+}
+/* a caderneta dividida em pedaços independentes */
+function fragmentos(){
+  const f = {
+    capa: DB.capa,
+    professores: DB.professores,
+    catalogos: DB.catalogos,
+    acessos: DB.acessos,
+    pedidos: DB.pedidos,
+    config: { gerente:DB.gerente, backup:{link:DB.backup.link} }
+  };
+  (DB.turmas||[]).forEach(t=> f['turma:'+t.id]=t);
+  (DB.avaliacoes||[]).forEach(a=> f['avaliacao:'+a.id]=a);
+  Object.keys(DB.aplicacoes||{}).forEach(k=> f['folha:'+k]=DB.aplicacoes[k]);
+  Object.keys(DB.calculos||{}).forEach(k=> f['calculo:'+k]=DB.calculos[k]);
+  const porTurma={};
+  (DB.historico||[]).forEach(h=>{ const k=h.turma||'geral'; (porTurma[k]=porTurma[k]||[]).push(h); });
+  Object.keys(porTurma).forEach(k=> f['historico:'+k]=porTurma[k].slice(0,300));
+  return f;
+}
+const chaveHist = h => [h.ts,h.aluno||'',h.sub||'',h.depois||''].join('|');
+
+function aplicarFragmento(chave, dados){
+  const apagado = dados && dados.__apagado;
+  if(chave==='capa'){ if(!apagado) DB.capa=Object.assign(vazioDB().capa, dados); return; }
+  if(chave==='professores'){ if(Array.isArray(dados)) DB.professores=dados; return; }
+  if(chave==='catalogos'){ if(dados&&dados.etapas) DB.catalogos=dados; return; }
+  if(chave==='acessos'){ if(dados&&!apagado) DB.acessos=dados; return; }
+  if(chave==='pedidos'){ if(Array.isArray(dados)) DB.pedidos=dados; return; }
+  if(chave.startsWith('calculo:')){
+    const k=chave.slice(8);
+    if(apagado) delete DB.calculos[k]; else DB.calculos[k]=dados;
+    return;
+  }
+  if(chave==='config'){
+    if(dados && dados.gerente) DB.gerente=dados.gerente;
+    if(dados && dados.backup) Object.assign(DB.backup, dados.backup);
+    return;
+  }
+  if(chave.startsWith('turma:')){
+    const id=chave.slice(6);
+    DB.turmas=(DB.turmas||[]).filter(t=>t.id!==id);
+    if(!apagado && dados) DB.turmas.push(dados);
+    return;
+  }
+  if(chave.startsWith('avaliacao:')){
+    const id=chave.slice(10);
+    DB.avaliacoes=(DB.avaliacoes||[]).filter(a=>a.id!==id);
+    if(!apagado && dados) DB.avaliacoes.push(dados);
+    return;
+  }
+  if(chave.startsWith('folha:')){
+    const k=chave.slice(6);
+    if(apagado) delete DB.aplicacoes[k]; else DB.aplicacoes[k]=dados;
+    return;
+  }
+  if(chave.startsWith('historico:')){
+    const t=chave.slice(10);
+    if(!Array.isArray(dados)) return;
+    const vistos={}, junto=[];
+    (DB.historico||[]).concat(dados).forEach(h=>{
+      if((h.turma||'geral')!==t && (DB.historico||[]).includes(h)){ junto.push(h); return; }
+      const k=chaveHist(h); if(vistos[k]) return; vistos[k]=1; junto.push(h);
+    });
+    DB.historico = junto.sort((a,b)=>b.ts-a.ts).slice(0,4000);
+    return;
+  }
+}
+
+async function api(caminho, opcoes){
+  const o = opcoes||{};
+  const r = await fetch(NUVEM.url.replace(/\/+$/,'')+'/rest/v1/'+caminho, {
+    method: o.method||'GET',
+    headers: Object.assign({
+      apikey: NUVEM.chave,
+      Authorization: 'Bearer '+NUVEM.chave,
+      'Content-Type': 'application/json'
+    }, o.headers||{}),
+    body: o.body
+  });
+  if(!r.ok){ const t=await r.text(); throw new Error('HTTP '+r.status+' — '+t.slice(0,140)); }
+  return r;
+}
+
+async function baixarNuvem(){
+  const desde = SINC.ultimo ? `&atualizado_em=gt.${encodeURIComponent(SINC.ultimo)}` : '';
+  const r = await api(`caderneta?select=chave,dados,atualizado_em${desde}&order=atualizado_em.asc`);
+  const linhas = await r.json();
+  let recebidos = 0;
+  if(linhas.length){
+    linhas.forEach(l=>{
+      SINC.ultimo = l.atualizado_em;
+      const m = marca(JSON.stringify(l.dados));
+      // eco do que este aparelho mesmo enviou: aplicar de novo desfaria edições locais
+      if(SINC.enviados[l.chave] === m) return;
+      aplicarFragmento(l.chave, l.dados);
+      if(l.dados && l.dados.__apagado) delete SINC.enviados[l.chave];
+      else SINC.enviados[l.chave] = m;
+      recebidos++;
+    });
+    try{ localStorage.setItem(CHAVE, JSON.stringify(DB)); }catch(e){}
+  }
+  jaBaixou=true;
+  return recebidos;
+}
+
+async function enviarNuvem(tudo){
+  const f = fragmentos(), envio=[];
+  Object.keys(f).forEach(k=>{
+    const m = marca(JSON.stringify(f[k]));
+    if(tudo || SINC.enviados[k]!==m) envio.push({chave:k, dados:f[k], _m:m});
+  });
+  Object.keys(SINC.enviados).forEach(k=>{
+    if(!(k in f)) envio.push({chave:k, dados:{__apagado:true}, _m:null});
+  });
+  if(!envio.length) return 0;
+  const corpo = envio.map(e=>({chave:e.chave, dados:e.dados}));
+  await api('caderneta', {method:'POST', body:JSON.stringify(corpo),
+    headers:{Prefer:'resolution=merge-duplicates,return=minimal'}});
+  envio.forEach(e=>{ if(e._m===null) delete SINC.enviados[e.chave]; else SINC.enviados[e.chave]=e._m; });
+  return envio.length;
+}
+
+/* traduz as falhas mais comuns do Supabase para linguagem de quem vai resolver */
+function explicaErro(m){
+  const t=String(m||'');
+  if(/HTTP 401|No API key|Invalid API key|JWT/i.test(t))
+    return 'Chave recusada (401). Confira se copiou a chave pública inteira, em Settings → API Keys.';
+  if(/HTTP 404|does not exist|Not Found/i.test(t))
+    return 'Tabela não encontrada (404). Rode o arquivo supabase-caderneta.sql no SQL Editor do projeto.';
+  if(/HTTP 40[39]|row-level security|permission denied/i.test(t))
+    return 'Permissão negada. Rode de novo o SQL, que é o que libera a leitura e a escrita.';
+  if(/Failed to fetch|NetworkError|ENOTFOUND|getaddrinfo/i.test(t))
+    return 'Não consegui alcançar o endereço. Confira a internet e se o endereço do projeto está correto.';
+  return t;
+}
+
+async function sincronizar(silencioso, tudo){
+  if(!nuvemLigada() || sincronizando) return 'desligado';
+  sincronizando=true; SINC.estado='sincronizando'; pintaNuvem();
+  try{
+    const baixados = await baixarNuvem();
+    let enviados = 0;
+    if(!cadernetaVazia() || tudo) enviados = await enviarNuvem(tudo);
+    SINC.estado='ok'; SINC.erro=''; SINC.em=Date.now();
+    gravarNuvemCfg(); pintaNuvem();
+    if(baixados && sessao) renderSeguro();
+    if(!silencioso) toast(`Sincronizado: ${baixados} recebido(s), ${enviados} enviado(s).`);
+    return 'ok';
+  }catch(e){
+    SINC.estado='erro'; SINC.erro=explicaErro(e.message); pintaNuvem();
+    if(!silencioso) toast('Falha na sincronização: '+SINC.erro);
+    return 'erro';
+  }finally{ sincronizando=false; }
+}
+function agendarSinc(){
+  if(!nuvemLigada()) return;
+  clearTimeout(timerSinc);
+  timerSinc=setTimeout(()=>sincronizar(true), 2500);
+}
+function pintaNuvem(){
+  const el=$('#statusNuvem'); if(!el) return;
+  if(!nuvemLigada()){ el.innerHTML=''; return; }
+  const cor={ok:'#a9d6b6', sincronizando:'#cfe0e9', erro:'#f3b0ab', desligado:'#cfe0e9'}[SINC.estado]||'#cfe0e9';
+  const txt={ok:'Nuvem: em dia', sincronizando:'Nuvem: sincronizando…', erro:'Nuvem: falha', desligado:'Nuvem: —'}[SINC.estado];
+  el.innerHTML=`<span style="color:${cor}">${txt}</span>`;
+}
+
+/* painel usado nas telas do professor e do gerenciador */
+function painelNuvem(podeEditar){
+  const est = !nuvemLigada() ? 'não configurada'
+    : {ok:'em dia', sincronizando:'sincronizando', erro:'com falha', desligado:'aguardando'}[SINC.estado];
+  return `<div class="painel" style="border-left:5px solid ${nuvemLigada()?(SINC.estado==='erro'?'var(--carimbo)':'var(--verde)'):'var(--ambar)'}">
+    <h3>Caderneta na nuvem</h3>
+    <p class="desc">Com a nuvem ligada, qualquer aparelho com internet abre a mesma caderneta e o que você lança aparece para os outros professores.</p>
+    ${!publicado()? `<div class="aviso erro">
+      <strong>Este app está aberto como arquivo do computador.</strong>
+      Nenhum outro aparelho consegue chegar até aqui, e o link de configuração não funciona fora desta máquina.
+      Publique o arquivo num endereço da internet antes de ligar a nuvem.
+    </div>`:''}
+    <div class="aviso" style="font-family:var(--mono);font-size:11.5px">Aberto de: ${esc(ondeEstou().txt)}</div>
+    <div class="aviso ${nuvemLigada()&&SINC.estado!=='erro'?'bom':(nuvemLigada()?'erro':'')}">
+      Estado: <strong>${est}</strong>.
+      ${SINC.em?` Última troca: ${dataHora(SINC.em)}.`:''}
+      ${SINC.erro?`<br>${esc(SINC.erro)}`:''}
+      ${!nuvemLigada()?'<br>Sem isso, os dados ficam apenas neste aparelho.':''}
+    </div>
+    ${podeEditar?`
+      <div class="linha" style="margin-bottom:10px">
+        <div class="campo"><label>Endereço do projeto</label><input id="nvUrl" value="${esc(NUVEM.url)}" placeholder="https://xxxxxxxx.supabase.co"></div>
+      </div>
+      <div class="linha" style="margin-bottom:10px">
+        <div class="campo"><label>Chave pública (anon / publishable)</label><input id="nvChave" value="${esc(NUVEM.chave)}" placeholder="eyJhbGciOi… ou sb_publishable_…"></div>
+        <button class="btn" id="nvSalvar">Salvar e conectar</button>
+      </div>
+      ${nuvemLigada()?`
+        <div class="acoes">
+          <button class="btn sec" id="nvSinc">Sincronizar agora</button>
+          <button class="btn sec" id="nvTudo">Enviar tudo para a nuvem</button>
+          <button class="btn sec" id="nvLink">Copiar link para os professores</button>
+          <button class="btn perigo" id="nvOff">Desconectar</button>
+        </div>
+        <div class="aviso" style="margin-top:12px">
+          Quem abrir o link de configuração passa a enxergar e alterar esta caderneta. Trate-o como uma senha:
+          mande apenas aos professores, por mensagem direta.
+        </div>`:''}
+    `:`
+      <div class="acoes">
+        <button class="btn sec" id="nvSinc" ${nuvemLigada()?'':'disabled'}>Sincronizar agora</button>
+      </div>
+      ${!nuvemLigada()?'<div class="aviso">Peça ao gerenciador o link de configuração da nuvem.</div>':''}
+    `}
+  </div>`;
+}
+function ligarPainelNuvem(){
+  if($('#nvSinc')) $('#nvSinc').onclick=()=>sincronizar(false);
+  if($('#nvSalvar')) $('#nvSalvar').onclick=async()=>{
+    let u=$('#nvUrl').value.trim().replace(/\/+$/,'');
+    const k=$('#nvChave').value.trim();
+    // tolerâncias comuns: endereço colado sem esquema, ou com o caminho da API junto
+    if(u && !/^https?:\/\//i.test(u)) u='https://'+u;
+    u=u.replace(/\/rest\/v1.*$/i,'').replace(/\/+$/,'');
+    if(u && !/^https?:\/\/[^\s\/]+/i.test(u)) return toast('Endereço inválido. Use algo como https://xxxx.supabase.co');
+    if(u) $('#nvUrl').value=u;
+    if(u && k && /^https?:\/\//i.test(k)) return toast('Os campos parecem trocados: o endereço vai no primeiro, a chave no segundo.');
+    NUVEM={url:u, chave:k}; SINC.ultimo=null; SINC.enviados={}; gravarNuvemCfg();
+    if(!u||!k){ SINC.estado='desligado'; render(); return toast(u?'Falta a chave pública.':'Nuvem desligada.'); }
+    const r = await sincronizar(false, true);
+    render();
+    if(r==='ok') toast('Conectado. A caderneta já está na nuvem.');
+  };
+  if($('#nvTudo')) $('#nvTudo').onclick=async()=>{ await sincronizar(false, true); render(); };
+  if($('#nvOff')) $('#nvOff').onclick=()=>{
+    if(!confirm('Desconectar este aparelho da nuvem? Os dados continuam salvos aqui.')) return;
+    NUVEM={url:'',chave:''}; SINC={ultimo:null,enviados:{},estado:'desligado',erro:'',em:null};
+    gravarNuvemCfg(); render(); toast('Desconectado.');
+  };
+  if($('#nvLink')) $('#nvLink').onclick=()=>{
+    if(!publicado()){
+      abrirModal(`<h3>Ainda não dá para gerar o link</h3>
+        <p style="font-size:13.5px">O app está sendo aberto como arquivo desta máquina
+        (<span style="font-family:var(--mono)">${esc(location.protocol+'//'+location.pathname)}</span>),
+        e não por um endereço da internet. Um link assim não abre em nenhum outro aparelho.</p>
+        <div class="aviso">Publique o arquivo — renomeando-o para <strong>index.html</strong> — no GitHub Pages ou em
+        <strong>app.netlify.com/drop</strong>. Depois abra o app pelo endereço publicado, reconecte a nuvem e o link passa a funcionar.</div>
+        <div class="acoes"><button class="btn" data-fechar>Entendi</button></div>`);
+      return;
+    }
+    const l=linkConfiguracao();
+    if(navigator.clipboard) navigator.clipboard.writeText(l).then(()=>toast('Link copiado.'),()=>0);
+    abrirModal(`<h3>Link de configuração</h3>
+      <p style="color:var(--tinta-fraca);font-size:13.5px">Cada professor abre este endereço uma vez no aparelho dele. Depois disso, basta abrir o app normalmente.</p>
+      <textarea readonly style="min-height:90px;font-family:var(--mono);font-size:12px">${esc(l)}</textarea>
+      <div class="acoes" style="margin-top:12px"><button class="btn" data-fechar>Fechar</button></div>`);
+  };
+}
+
+/* =======================================================================
+   INÍCIO
+   ======================================================================= */
+async function iniciar(){
+  carregar();
+  // migração: conta única antiga vira o primeiro professor liberado
+  if(DB.prof && DB.prof.hash && !DB.professores.length){
+    DB.professores.push({id:uid(), nome:(DB.capa.professor||'Professor').trim(), hash:DB.prof.hash,
+      dica:DB.prof.dica||'', status:'ativo', criadoEm:Date.now(), liberadoEm:Date.now()});
+  }
+  if(!DB.gerente.hash){
+    DB.gerente.hash = await hash('maracuja');
+    try{ localStorage.setItem(CHAVE, JSON.stringify(DB)); }catch(e){}
+  }
+  carregarNuvem();
+  if(nuvemLigada()) await sincronizar(true);
+  setInterval(()=>{ if(nuvemLigada() && !sincronizando) sincronizar(true); }, 20000);
+  telaAcesso();
+}
+iniciar();
+window.addEventListener('beforeunload', e=>{ if(sessao&&sessao.tipo==='prof') salvar(true); });
+</script>
+
+</body>
+</html>
